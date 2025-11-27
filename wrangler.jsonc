@@ -1,6 +1,6 @@
 {
 	"main": "dist/_worker.js/index.js",
-	"name": "init-template",
+	"name": "the-ride",
   "compatibility_date": "2025-11-27",
   "compatibility_flags": [
     "nodejs_compat",
