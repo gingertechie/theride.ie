@@ -1,0 +1,17 @@
+{
+        "segment_id": 26408, // unique id of the segment
+        "last_data_package": "2021-01-16 13:01:52.564200+00:00", // timestamp of the last data package received from the segment
+        "timezone": "Europe/Brussels",
+        "date": "2025-02-01",
+        "period": "hourly", // period of the data aggregation (hourly, daily, monthly)
+        "uptime": "0.98", // percentage of time the segment was operational during the period
+        "heavy": "104.2", // number of heavy vehicles in the period
+        "car": "2900.01", // number of cars in the period
+        "bike": "34.2", // number of bikes in the period
+        "pedestrian": "120.0", // number of pedestrians in the period
+        "v85": "54.03", // 85th percentile speed of vehicles in the period (in km/h)
+        "coordinates": { // geographical coordinates of the segment
+                "lat": 51.0355299980868,
+                "lon": 3.7072067896432
+        }
+}

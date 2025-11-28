@@ -12,5 +12,9 @@ export default defineConfig({
   site: "https://positivustheme.vercel.app",
   integrations: [tailwind()],
   output: 'server',
-  adapter: cloudflare(),
+  adapter: cloudflare({
+    platformProxy: {
+      enabled: true,
+    },
+  }),
 });
