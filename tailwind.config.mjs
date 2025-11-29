@@ -18,6 +18,20 @@ export default {
         medium: 500,
       },
       colors: {
+        // Velvet & Neon Design System
+        'velvet-black': 'var(--velvet-black)',
+        'velvet-charcoal': 'var(--velvet-charcoal)',
+        'velvet-purple': 'var(--velvet-purple)',
+        'velvet-midnight': 'var(--velvet-midnight)',
+        'neon-green': 'var(--neon-green)',
+        'neon-cyan': 'var(--neon-cyan)',
+        'neon-yellow': 'var(--neon-yellow)',
+        'neon-orange': 'var(--neon-orange)',
+        'neon-pink': 'var(--neon-pink)',
+        'text-primary': 'var(--text-primary)',
+        'text-secondary': 'var(--text-secondary)',
+        'text-muted': 'var(--text-muted)',
+        // Legacy compatibility
         green: "var(--green)",
         black: "var(--black)",
         dark: "var(--dark)",

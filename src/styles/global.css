@@ -29,11 +29,57 @@
   }
 
   :root {
-    --green: #b9ff66;
-    --black: rgb(0, 0, 0);
-    --dark: #191a23;
-    --gray: #f3f3f3;
-    --white: #ffffff;
+    /* Velvet & Neon Design System */
+
+    /* Velvet Base Colors - Deep, Rich Backgrounds */
+    --velvet-black: #0a0a0a;        /* Matte Black - Primary background */
+    --velvet-charcoal: #1a1a1a;     /* Deep Charcoal - Secondary background */
+    --velvet-purple: #1a0f2e;       /* Deep Purple - Accent background */
+    --velvet-midnight: #0d1117;     /* Midnight - Card backgrounds */
+
+    /* Neon Accent Colors - Vibrant, High-Energy */
+    --neon-green: #39FF14;          /* Electric Neon Green - Primary cycling accent */
+    --neon-cyan: #00F0FF;           /* Electric Cyan - Data visualization */
+    --neon-yellow: #CCFF00;         /* Hi-Viz Yellow - Building-site hi-viz aesthetic */
+    --neon-orange: #FF6B1A;         /* Bright Orange - Warning/Alert states */
+    --neon-pink: #FF10F0;           /* Hot Pink - Alternative accent */
+
+    /* Semantic Color Mappings */
+    --primary-accent: var(--neon-green);
+    --secondary-accent: var(--neon-yellow);
+    --data-accent: var(--neon-cyan);
+
+    /* Text Colors */
+    --text-primary: #ffffff;        /* Pure white for high contrast */
+    --text-secondary: #b4b4b4;      /* Light gray for secondary text */
+    --text-muted: #6b6b6b;          /* Muted gray for tertiary text */
+
+    /* Surface Colors */
+    --surface-base: var(--velvet-black);
+    --surface-raised: var(--velvet-charcoal);
+    --surface-overlay: var(--velvet-midnight);
+
+    /* Glow Effects - Neon Light Simulation */
+    --glow-green: 0 0 10px rgba(57, 255, 20, 0.5),
+                  0 0 20px rgba(57, 255, 20, 0.3),
+                  0 0 30px rgba(57, 255, 20, 0.2);
+    --glow-green-strong: 0 0 10px rgba(57, 255, 20, 0.8),
+                         0 0 20px rgba(57, 255, 20, 0.6),
+                         0 0 40px rgba(57, 255, 20, 0.4),
+                         0 0 60px rgba(57, 255, 20, 0.2);
+    --glow-yellow: 0 0 10px rgba(204, 255, 0, 0.5),
+                   0 0 20px rgba(204, 255, 0, 0.3),
+                   0 0 30px rgba(204, 255, 0, 0.2);
+    --glow-cyan: 0 0 10px rgba(0, 240, 255, 0.5),
+                 0 0 20px rgba(0, 240, 255, 0.3),
+                 0 0 30px rgba(0, 240, 255, 0.2);
+
+    /* Legacy Compatibility (for gradual migration) */
+    --green: var(--neon-green);
+    --black: var(--velvet-black);
+    --dark: var(--velvet-charcoal);
+    --gray: var(--text-secondary);
+    --white: var(--text-primary);
   }
 
   /* @layer base {
@@ -100,56 +146,175 @@
   } */
 
   @layer components {
+    /* Button Styles - Neon Aesthetic */
     .btn-primary {
-      @apply bg-dark text-white rounded-lg px-[35px] py-5 transition-all duration-200;
+      @apply bg-neon-green text-velvet-black rounded-lg px-[35px] py-5 transition-all duration-300;
+      box-shadow: var(--glow-green);
     }
     .btn-primary:hover {
-      @apply bg-green text-black transform scale-105;
+      @apply transform scale-105;
+      box-shadow: var(--glow-green-strong);
     }
 
     .btn-secondary {
-      @apply bg-transparent text-black px-[35px] py-5 rounded-lg border border-solid border-black transition-all duration-200;
+      @apply bg-transparent text-white px-[35px] py-5 rounded-lg transition-all duration-300;
+      border: 2px solid var(--neon-cyan);
     }
     .btn-secondary:hover {
-      @apply bg-black text-white border-green transform scale-105;
+      @apply bg-neon-cyan text-velvet-black transform scale-105;
+      box-shadow: var(--glow-cyan);
     }
 
     .btn-tertiary {
-      @apply bg-green text-black rounded-lg px-[35px] py-5 transition-all duration-200;
+      @apply bg-velvet-charcoal text-white rounded-lg px-[35px] py-5 transition-all duration-300;
+      border: 2px solid var(--neon-green);
+      position: relative;
     }
     .btn-tertiary:hover {
-      @apply bg-white text-black transform scale-105;
+      @apply bg-neon-green text-velvet-black transform scale-105;
+      box-shadow: var(--glow-green-strong);
     }
 
+    /* Heading Highlights - Neon Pills */
     .greenhead {
-      @apply bg-green text-black rounded-[7px] px-[7px];
+      @apply bg-neon-green text-velvet-black rounded-[7px] px-[7px];
+      box-shadow: var(--glow-green);
+      font-weight: 600;
     }
 
+    .neonhead {
+      @apply bg-neon-cyan text-velvet-black rounded-[7px] px-[7px];
+      box-shadow: var(--glow-cyan);
+      font-weight: 600;
+    }
+
+    .yellowhead {
+      @apply bg-neon-yellow text-velvet-black rounded-[7px] px-[7px];
+      box-shadow: var(--glow-yellow);
+      font-weight: 600;
+    }
+
+    /* Legacy heading classes - updated for dark theme */
     .whitehead {
-      @apply bg-white text-black rounded-[7px] px-[7px];
+      @apply bg-white text-velvet-black rounded-[7px] px-[7px];
     }
 
     .blackhead {
-      @apply bg-black text-white rounded-[7px] px-[7px];
+      @apply bg-velvet-black text-neon-green rounded-[7px] px-[7px];
+      border: 1px solid var(--neon-green);
+    }
+
+    /* Neon Glow Utilities */
+    .neon-glow-green {
+      box-shadow: var(--glow-green);
+    }
+
+    .neon-glow-green-strong {
+      box-shadow: var(--glow-green-strong);
+    }
+
+    .neon-glow-yellow {
+      box-shadow: var(--glow-yellow);
+    }
+
+    .neon-glow-cyan {
+      box-shadow: var(--glow-cyan);
+    }
+
+    /* Text Glow Effects */
+    .text-glow-green {
+      text-shadow: var(--glow-green);
+    }
+
+    .text-glow-yellow {
+      text-shadow: var(--glow-yellow);
+    }
+
+    .text-glow-cyan {
+      text-shadow: var(--glow-cyan);
+    }
+
+    /* Neon Border Utilities */
+    .neon-border-green {
+      border: 2px solid var(--neon-green);
+    }
+
+    .neon-border-yellow {
+      border: 2px solid var(--neon-yellow);
+    }
+
+    .neon-border-cyan {
+      border: 2px solid var(--neon-cyan);
+    }
+
+    /* Neon Divider - Thin Parallel Lines */
+    .neon-divider {
+      position: relative;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
+      box-shadow: var(--glow-green);
+    }
+
+    .neon-divider::after {
+      content: '';
+      position: absolute;
+      top: 6px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
+      opacity: 0.5;
+    }
+
+    /* Card/Surface Styles */
+    .velvet-card {
+      @apply bg-velvet-charcoal rounded-lg;
+      border: 1px solid rgba(57, 255, 20, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .velvet-card:hover {
+      border-color: var(--neon-green);
+      box-shadow: var(--glow-green);
+    }
+
+    /* Pulse Animation for Live Data */
+    @keyframes neon-pulse {
+      0%, 100% {
+        opacity: 1;
+        box-shadow: var(--glow-green);
+      }
+      50% {
+        opacity: 0.8;
+        box-shadow: var(--glow-green-strong);
+      }
+    }
+
+    .neon-pulse {
+      animation: neon-pulse 2s ease-in-out infinite;
     }
   }
 }
 
-/* custom scrollbar */
+/* Custom Scrollbar - Neon Style */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--velvet-black);
+  border-left: 1px solid var(--velvet-charcoal);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #000000;
+  background: linear-gradient(180deg, var(--neon-green), var(--neon-cyan));
+  border-radius: 6px;
+  border: 2px solid var(--velvet-black);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--neon-green);
+  box-shadow: var(--glow-green);
 }
 
 /* markdown style */

@@ -1,0 +1,324 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+---
+
+<MainLayout
+  title="Velvet & Neon Design Showcase | The Ride"
+  description="Visual showcase of The Ride's Velvet & Neon design system"
+>
+  <!-- Hero Section -->
+  <section class="bg-velvet-black py-20 px-4 md:px-6">
+    <div class="container mx-auto max-w-6xl">
+      <h1 class="text-3xl md:text-6xl font-medium text-white mb-6 text-center">
+        The Ride <span class="greenhead text-glow-green">Design System</span>
+      </h1>
+      <p class="text-text-secondary text-xl text-center mb-8">
+        Velvet & Neon aesthetic for Irish cycling data visualization
+      </p>
+      <div class="neon-divider mb-12"></div>
+
+      <!-- THE YOKE Counter Example -->
+      <div class="flex flex-col items-center mb-20">
+        <h2 class="text-2xl text-text-secondary mb-4">THE YOKE - National Counter</h2>
+        <div class="bg-velvet-midnight p-6 md:p-12 rounded-2xl neon-border-green neon-pulse w-full max-w-2xl">
+          <div class="text-6xl md:text-9xl font-bold text-neon-green mb-4 text-center">
+            24,567
+          </div>
+          <p class="text-text-secondary text-base md:text-lg text-center">
+            Bikes counted in the last 24 hours across Ireland
+          </p>
+        </div>
+      </div>
+
+      <!-- Color Palette -->
+      <div class="mb-20">
+        <h2 class="text-2xl md:text-4xl font-medium text-white mb-8">
+          Color <span class="neonhead">Palette</span>
+        </h2>
+
+        <div class="mb-12">
+          <h3 class="text-2xl text-text-secondary mb-6">Velvet Base Colors</h3>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="text-center">
+              <div class="bg-velvet-black h-32 rounded-lg border-2 border-text-muted mb-3"></div>
+              <p class="text-text-secondary font-mono text-sm">velvet-black</p>
+              <p class="text-text-muted font-mono text-xs">#0a0a0a</p>
+            </div>
+            <div class="text-center">
+              <div class="bg-velvet-charcoal h-32 rounded-lg border-2 border-text-muted mb-3"></div>
+              <p class="text-text-secondary font-mono text-sm">velvet-charcoal</p>
+              <p class="text-text-muted font-mono text-xs">#1a1a1a</p>
+            </div>
+            <div class="text-center">
+              <div class="bg-velvet-purple h-32 rounded-lg border-2 border-text-muted mb-3"></div>
+              <p class="text-text-secondary font-mono text-sm">velvet-purple</p>
+              <p class="text-text-muted font-mono text-xs">#1a0f2e</p>
+            </div>
+            <div class="text-center">
+              <div class="bg-velvet-midnight h-32 rounded-lg border-2 border-text-muted mb-3"></div>
+              <p class="text-text-secondary font-mono text-sm">velvet-midnight</p>
+              <p class="text-text-muted font-mono text-xs">#0d1117</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-2xl text-text-secondary mb-6">Neon Accent Colors</h3>
+          <div class="grid grid-cols-2 md:grid-cols-5 gap-6">
+            <div class="text-center">
+              <div class="bg-neon-green h-32 rounded-lg neon-glow-green mb-3"></div>
+              <p class="text-text-secondary font-mono text-sm">neon-green</p>
+              <p class="text-text-muted font-mono text-xs">#39FF14</p>
+            </div>
+            <div class="text-center">
+              <div class="bg-neon-cyan h-32 rounded-lg neon-glow-cyan mb-3"></div>
+              <p class="text-text-secondary font-mono text-sm">neon-cyan</p>
+              <p class="text-text-muted font-mono text-xs">#00F0FF</p>
+            </div>
+            <div class="text-center">
+              <div class="bg-neon-yellow h-32 rounded-lg neon-glow-yellow mb-3"></div>
+              <p class="text-text-secondary font-mono text-sm">neon-yellow</p>
+              <p class="text-text-muted font-mono text-xs">#CCFF00</p>
+            </div>
+            <div class="text-center">
+              <div class="bg-neon-orange h-32 rounded-lg mb-3"></div>
+              <p class="text-text-secondary font-mono text-sm">neon-orange</p>
+              <p class="text-text-muted font-mono text-xs">#FF6B1A</p>
+            </div>
+            <div class="text-center">
+              <div class="bg-neon-pink h-32 rounded-lg mb-3"></div>
+              <p class="text-text-secondary font-mono text-sm">neon-pink</p>
+              <p class="text-text-muted font-mono text-xs">#FF10F0</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="mb-20">
+        <h2 class="text-2xl md:text-4xl font-medium text-white mb-8">
+          <span class="greenhead">Buttons</span>
+        </h2>
+        <div class="grid md:grid-cols-3 gap-8">
+          <div class="text-center">
+            <button class="btn-primary">Primary Button</button>
+            <p class="text-text-secondary mt-4 text-sm">Most prominent - Main CTAs, critical actions</p>
+          </div>
+          <div class="text-center">
+            <button class="btn-secondary">Secondary Button</button>
+            <p class="text-text-secondary mt-4 text-sm">Alternative actions, secondary paths</p>
+          </div>
+          <div class="text-center">
+            <button class="btn-tertiary">Tertiary Button</button>
+            <p class="text-text-secondary mt-4 text-sm">Least prominent - Subtle actions</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Heading Highlights -->
+      <div class="mb-20">
+        <h2 class="text-2xl md:text-4xl font-medium text-white mb-8">
+          Heading <span class="yellowhead">Highlights</span>
+        </h2>
+        <div class="space-y-6">
+          <div class="bg-velvet-charcoal p-6 rounded-lg">
+            <h3 class="text-3xl font-medium">
+              Ireland's <span class="greenhead">Local Output</span>
+            </h3>
+            <p class="text-text-muted text-sm mt-2">Use for: National data, cycling metrics</p>
+          </div>
+          <div class="bg-velvet-charcoal p-6 rounded-lg">
+            <h3 class="text-3xl font-medium">
+              Real-time <span class="neonhead">Sensor Data</span>
+            </h3>
+            <p class="text-text-muted text-sm mt-2">Use for: Data points, technical info</p>
+          </div>
+          <div class="bg-velvet-charcoal p-6 rounded-lg">
+            <h3 class="text-2xl md:text-3xl font-medium">
+              <span class="yellowhead">County Cork</span>'s Performance
+            </h3>
+            <p class="text-text-muted text-sm mt-2">Use for: County names, regional identity</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cards -->
+      <div class="mb-20">
+        <h2 class="text-2xl md:text-4xl font-medium text-white mb-8">
+          Velvet <span class="neonhead">Cards</span>
+        </h2>
+        <div class="grid md:grid-cols-3 gap-6">
+          <div class="velvet-card p-6">
+            <h4 class="text-xl font-medium text-white mb-3">County Dublin</h4>
+            <div class="text-4xl font-bold text-neon-cyan mb-2">4,892</div>
+            <p class="text-text-secondary text-sm">bikes in 24 hours</p>
+          </div>
+          <div class="velvet-card p-6">
+            <h4 class="text-xl font-medium text-white mb-3">County Cork</h4>
+            <div class="text-4xl font-bold text-neon-yellow mb-2">3,421</div>
+            <p class="text-text-secondary text-sm">bikes in 24 hours</p>
+          </div>
+          <div class="velvet-card p-6">
+            <h4 class="text-xl font-medium text-white mb-3">County Galway</h4>
+            <div class="text-4xl font-bold text-neon-green mb-2">2,156</div>
+            <p class="text-text-secondary text-sm">bikes in 24 hours</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- County Example -->
+      <div class="mb-20">
+        <h2 class="text-2xl md:text-4xl font-medium text-white mb-8">
+          County Page <span class="yellowhead">Example</span>
+        </h2>
+        <div class="bg-velvet-purple p-8 rounded-2xl neon-border-yellow">
+          <h3 class="text-2xl md:text-3xl font-medium mb-6">
+            <span class="yellowhead">County Cork</span>'s Local Output
+          </h3>
+          <div class="grid md:grid-cols-2 gap-8 mb-8">
+            <div>
+              <div class="text-4xl md:text-6xl font-bold text-neon-yellow mb-2">3,421</div>
+              <p class="text-text-secondary">bikes in the last 24 hours</p>
+            </div>
+            <div>
+              <div class="text-2xl font-medium text-neon-cyan mb-2">Rank: #2</div>
+              <p class="text-text-secondary text-sm">Just behind Dublin. Keep pushing!</p>
+            </div>
+          </div>
+          <div class="neon-divider mb-8"></div>
+          <div class="grid md:grid-cols-3 gap-6">
+            <div class="bg-velvet-midnight p-4 rounded-lg neon-border-cyan">
+              <div class="text-sm text-text-muted mb-1">Peak Flow Rate</div>
+              <div class="text-2xl font-bold text-neon-cyan">187/hr</div>
+            </div>
+            <div class="bg-velvet-midnight p-4 rounded-lg neon-border-cyan">
+              <div class="text-sm text-text-muted mb-1">Active Sensors</div>
+              <div class="text-2xl font-bold text-neon-cyan">8</div>
+            </div>
+            <div class="bg-velvet-midnight p-4 rounded-lg neon-border-cyan">
+              <div class="text-sm text-text-muted mb-1">v85 Speed</div>
+              <div class="text-2xl font-bold text-neon-orange">24 km/h</div>
+            </div>
+          </div>
+          <div class="mt-8 p-4 bg-velvet-black rounded-lg border border-neon-yellow">
+            <p class="text-text-secondary text-sm italic">
+              "Keep up the Local Output. Don't let Kerry win."
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Neon Divider Example -->
+      <div class="mb-20">
+        <h2 class="text-2xl md:text-4xl font-medium text-white mb-8">
+          Neon <span class="greenhead">Dividers</span>
+        </h2>
+        <div class="bg-velvet-charcoal p-8 rounded-lg">
+          <p class="text-text-secondary mb-6">Section Above</p>
+          <div class="neon-divider"></div>
+          <p class="text-text-secondary mt-6">Section Below</p>
+        </div>
+      </div>
+
+      <!-- Glow Effects -->
+      <div class="mb-20">
+        <h2 class="text-2xl md:text-4xl font-medium text-white mb-8">
+          Glow <span class="neonhead">Effects</span>
+        </h2>
+        <div class="grid md:grid-cols-3 gap-6">
+          <div class="bg-velvet-charcoal p-6 rounded-lg text-center">
+            <div class="text-4xl font-bold text-neon-green neon-glow-green mb-3">
+              Green Glow
+            </div>
+            <p class="text-text-muted text-sm">Primary cycling data</p>
+          </div>
+          <div class="bg-velvet-charcoal p-6 rounded-lg text-center">
+            <div class="text-4xl font-bold text-neon-cyan neon-glow-cyan mb-3">
+              Cyan Glow
+            </div>
+            <p class="text-text-muted text-sm">Data visualization</p>
+          </div>
+          <div class="bg-velvet-charcoal p-6 rounded-lg text-center">
+            <div class="text-4xl font-bold text-neon-yellow neon-glow-yellow mb-3">
+              Yellow Glow
+            </div>
+            <p class="text-text-muted text-sm">County highlights</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pulse Animation -->
+      <div class="mb-20">
+        <h2 class="text-2xl md:text-4xl font-medium text-white mb-8">
+          Live Data <span class="greenhead neon-pulse">Pulse</span>
+        </h2>
+        <div class="bg-velvet-midnight p-12 rounded-2xl text-center">
+          <p class="text-text-secondary mb-4">Use for real-time, updating data only</p>
+          <div class="text-7xl font-bold text-neon-green neon-pulse">
+            24,567
+          </div>
+          <p class="text-text-muted text-sm mt-4">This number is pulsing with neon glow</p>
+        </div>
+      </div>
+
+      <!-- Typography -->
+      <div class="mb-20">
+        <h2 class="text-2xl md:text-4xl font-medium text-white mb-8">
+          Typography <span class="neonhead">Scale</span>
+        </h2>
+        <div class="bg-velvet-charcoal p-8 rounded-lg space-y-6">
+          <div>
+            <h1 class="text-6xl font-medium text-white">Heading 1 - 3rem</h1>
+            <p class="text-text-muted text-sm">Font: Space Grotesk Medium (500)</p>
+          </div>
+          <div>
+            <h2 class="text-4xl font-medium text-white">Heading 2 - 2rem</h2>
+            <p class="text-text-muted text-sm">Font: Space Grotesk Medium (500)</p>
+          </div>
+          <div>
+            <h3 class="text-2xl font-medium text-white">Heading 3 - 1.5rem</h3>
+            <p class="text-text-muted text-sm">Font: Space Grotesk Medium (500)</p>
+          </div>
+          <div>
+            <h4 class="text-xl font-medium text-white">Heading 4 - 1rem</h4>
+            <p class="text-text-muted text-sm">Font: Space Grotesk Medium (500)</p>
+          </div>
+          <div>
+            <p class="text-text-primary text-lg">Body Text Primary - 20px</p>
+            <p class="text-text-secondary text-lg">Body Text Secondary - 20px</p>
+            <p class="text-text-muted text-lg">Body Text Muted - 20px</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Border Utilities -->
+      <div class="mb-20">
+        <h2 class="text-2xl md:text-4xl font-medium text-white mb-8">
+          Neon <span class="greenhead">Borders</span>
+        </h2>
+        <div class="grid md:grid-cols-3 gap-6">
+          <div class="bg-velvet-charcoal p-6 rounded-lg neon-border-green">
+            <p class="text-white text-center">Green Border</p>
+          </div>
+          <div class="bg-velvet-charcoal p-6 rounded-lg neon-border-cyan">
+            <p class="text-white text-center">Cyan Border</p>
+          </div>
+          <div class="bg-velvet-charcoal p-6 rounded-lg neon-border-yellow">
+            <p class="text-white text-center">Yellow Border</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Note -->
+      <div class="text-center py-12">
+        <div class="neon-divider mb-8"></div>
+        <p class="text-text-secondary">
+          This showcase demonstrates The Ride's Velvet & Neon design system.
+        </p>
+        <p class="text-text-muted text-sm mt-2">
+          For full documentation, see <code class="bg-velvet-charcoal px-2 py-1 rounded text-neon-cyan">DESIGN_SYSTEM.md</code>
+        </p>
+      </div>
+    </div>
+  </section>
+</MainLayout>
