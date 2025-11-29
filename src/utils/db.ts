@@ -168,3 +168,33 @@ export async function deleteSensor(
     .bind(segmentId)
     .run();
 }
+
+/**
+ * Get national cycling statistics
+ */
+export interface NationalStats {
+  total_bikes: number;
+  total_cars: number;
+  total_pedestrians: number;
+  total_heavy: number;
+  sensor_count: number;
+  last_updated: string;
+}
+
+export async function getNationalStats(db: D1Database): Promise<NationalStats | null> {
+  const result = await db
+    .prepare(`
+      SELECT
+        COALESCE(SUM(bike), 0) as total_bikes,
+        COALESCE(SUM(car), 0) as total_cars,
+        COALESCE(SUM(pedestrian), 0) as total_pedestrians,
+        COALESCE(SUM(heavy), 0) as total_heavy,
+        COUNT(*) as sensor_count,
+        MAX(last_data_package) as last_updated
+      FROM sensor_locations
+      WHERE county IS NOT NULL
+    `)
+    .first<NationalStats>();
+
+  return result;
+}

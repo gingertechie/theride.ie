@@ -12,9 +12,15 @@ CREATE TABLE IF NOT EXISTS sensor_locations (
     car REAL,
     bike REAL,
     pedestrian REAL,
+    night REAL,
     v85 REAL,
     latitude REAL NOT NULL,
     longitude REAL NOT NULL,
+    country TEXT,
+    county TEXT,
+    city_town TEXT,
+    locality TEXT,
+    eircode TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     CHECK(period IN ('hourly', 'daily', 'monthly') OR period IS NULL)
@@ -31,3 +37,6 @@ CREATE INDEX IF NOT EXISTS idx_sensor_date ON sensor_locations(date);
 
 -- Index for period-based queries
 CREATE INDEX IF NOT EXISTS idx_sensor_period ON sensor_locations(period);
+
+-- Index for county-based queries
+CREATE INDEX IF NOT EXISTS idx_sensor_county ON sensor_locations(county);
