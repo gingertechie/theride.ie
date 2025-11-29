@@ -1,11 +1,18 @@
 ---
 import MinimalLayout from "../layouts/MinimalLayout.astro";
+import CountyLeaderboard from "../components/sections/CountyLeaderboard.astro";
 
 // Fetch national stats from API
 const response = await fetch(`${Astro.url.origin}/api/stats/national.json`);
 const result = await response.json();
 
 const stats = result.success ? result.data : null;
+
+// Fetch county leaderboard data
+const countiesResponse = await fetch(`${Astro.url.origin}/api/stats/counties.json`);
+const countiesResult = await countiesResponse.json();
+
+const counties = countiesResult.success ? countiesResult.data : [];
 ---
 
 <MinimalLayout
@@ -49,6 +56,12 @@ const stats = result.success ? result.data : null;
               timeStyle: 'short'
             })}
           </p>
+        </div>
+
+        <!-- County Leaderboard -->
+        <div class="mt-20">
+          <div class="neon-divider mb-12"></div>
+          <CountyLeaderboard counties={counties} />
         </div>
       ) : (
         <!-- Error State -->
