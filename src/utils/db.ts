@@ -198,3 +198,36 @@ export async function getNationalStats(db: D1Database): Promise<NationalStats | 
 
   return result;
 }
+
+/**
+ * Get top counties by bike count
+ */
+export interface CountyStats {
+  county: string;
+  total_bikes: number;
+  sensor_count: number;
+  avg_bikes_per_sensor: number;
+}
+
+export async function getTopCountiesByBikes(
+  db: D1Database,
+  limit: number = 3
+): Promise<CountyStats[]> {
+  const { results } = await db
+    .prepare(`
+      SELECT
+        county,
+        COALESCE(SUM(bike), 0) as total_bikes,
+        COUNT(*) as sensor_count,
+        COALESCE(SUM(bike) / COUNT(*), 0) as avg_bikes_per_sensor
+      FROM sensor_locations
+      WHERE county IS NOT NULL AND bike IS NOT NULL
+      GROUP BY county
+      ORDER BY total_bikes DESC
+      LIMIT ?
+    `)
+    .bind(limit)
+    .all<CountyStats>();
+
+  return results || [];
+}
