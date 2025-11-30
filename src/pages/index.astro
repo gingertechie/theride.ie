@@ -32,11 +32,10 @@ const counties = countiesResult.success ? countiesResult.data : [];
       <div class="neon-divider mb-16"></div>
 
       {stats ? (
-        <!-- THE YOKE - National Counter -->
         <div class="flex flex-col items-center mb-20">
           <h2 class="text-2xl text-text-secondary mb-4">National Ride-o-meter</h2>
-          <div class="bg-velvet-midnight p-6 md:p-12 rounded-2xl neon-border-green neon-pulse w-full max-w-2xl">
-            <div class="text-6xl md:text-9xl font-bold text-neon-green mb-4 text-center">
+          <div class="bg-velvet-midnight p-6 md:p-12 rounded-2xl neon-border-yellow neon-pulse w-full max-w-2xl">
+            <div class="text-6xl md:text-9xl font-bold text-neon-yellow mb-4 text-center">
               {Math.round(stats.total_bikes).toLocaleString()}
             </div>
             <p class="text-text-secondary text-base md:text-lg text-center">
