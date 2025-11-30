@@ -36,20 +36,11 @@ export default {
     console.log('Starting scheduled sensor data update...');
 
     try {
-      // Fetch data from Telraam API
-      // Geographic center of Ireland: 53.4129°N, 8.2439°W
-      // Radius: 300km to cover all of Ireland
+      // Fetch data from Telraam API - returns all live traffic snapshots
       const response = await fetch('https://telraam-api.net/v1/reports/traffic_snapshot_live', {
-        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'X-Api-Key': env.TELRAAM_API_KEY,
         },
-        body: JSON.stringify({
-          time: 'live',
-          contents: 'minimal',
-          area: '-8.2439,53.4129,300', // longitude, latitude, radius in km
-        }),
       });
 
       if (!response.ok) {
