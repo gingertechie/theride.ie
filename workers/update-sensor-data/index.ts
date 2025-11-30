@@ -24,7 +24,9 @@ interface TelraamReport {
 }
 
 interface TelraamApiResponse {
-  report: TelraamReport[];
+  features: Array<{
+    properties: TelraamReport;
+  }>;
 }
 
 export default {
@@ -48,9 +50,9 @@ export default {
       }
 
       const data: TelraamApiResponse = await response.json();
-      console.log(`Received ${data.report?.length || 0} sensor reports from Telraam API`);
+      console.log(`Received ${data.features?.length || 0} sensor reports from Telraam API`);
 
-      if (!data.report || data.report.length === 0) {
+      if (!data.features || data.features.length === 0) {
         console.log('No sensor data received from API');
         return;
       }
@@ -59,7 +61,8 @@ export default {
       let updatedCount = 0;
       let skippedCount = 0;
 
-      for (const report of data.report) {
+      for (const feature of data.features) {
+        const report = feature.properties;
         try {
           // Check if this segment exists in our database
           const existingSegment = await env.DB
