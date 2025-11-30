@@ -10,6 +10,13 @@
 		"binding": "ASSETS",
 		"directory": "./dist"
 	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "theride-db",
+			"database_id": "86c35cca-68fd-4d93-8d4a-c7a3ab463b10"
+		}
+	],
 	"observability": {
     "enabled": true
   }
