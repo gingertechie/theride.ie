@@ -17,7 +17,7 @@ const stats = result.success ? result.data : null;
     <div class="container mx-auto max-w-6xl">
       <!-- Page Header -->
       <h1 class="text-3xl md:text-6xl font-medium text-white mb-6 text-center">
-        Ireland <span class="greenhead text-glow-green">Rides</span>
+        Ireland <span class="greenhead text-glow-green">Rides!</span>
       </h1>
       <p class="text-text-secondary text-xl text-center mb-12">
         Daily bike rides from sensors across the country - with thanks to Telraam
@@ -27,7 +27,7 @@ const stats = result.success ? result.data : null;
       {stats ? (
         <!-- The National Ride-o-meter -->
         <div class="flex flex-col items-center mb-20">
-          <h2 class="text-2xl text-text-secondary mb-4">THE YOKE - National Counter</h2>
+          <h2 class="text-2xl text-text-secondary mb-4">National Ride-o-meter</h2>
           <div class="bg-velvet-midnight p-6 md:p-12 rounded-2xl neon-border-yellow neon-pulse w-full max-w-2xl">
             <div class="text-6xl md:text-9xl font-bold text-neon-yellow mb-4 text-center">
               {Math.round(stats.total_bikes).toLocaleString()}
