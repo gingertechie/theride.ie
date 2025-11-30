@@ -4,6 +4,7 @@
   "description": "Scheduled worker to update sensor data from Telraam API",
   "main": "index.ts",
   "scripts": {
+    "build": "echo 'No build step needed - wrangler handles compilation'",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail"
