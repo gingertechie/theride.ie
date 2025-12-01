@@ -306,13 +306,23 @@ async function execWrangler(command: string): Promise<string> {
   const { promisify } = await import('util');
   const execAsync = promisify(exec);
 
-  const { stdout, stderr } = await execAsync(`npx wrangler ${command}`);
+  try {
+    const { stdout, stderr } = await execAsync(`npx wrangler ${command}`);
 
-  if (stderr && !stderr.includes('wrangler')) {
-    throw new Error(stderr);
+    // Wrangler often outputs warnings to stderr, which is normal
+    // Only throw if stderr contains actual errors (not warnings)
+    if (stderr && stderr.includes('ERROR') && !stderr.includes('WARNING')) {
+      throw new Error(stderr);
+    }
+
+    return stdout;
+  } catch (error: any) {
+    // If the command failed (non-zero exit code), throw the error
+    if (error.code && error.code !== 0) {
+      throw new Error(`Wrangler command failed: ${error.message}`);
+    }
+    throw error;
   }
-
-  return stdout;
 }
 
 // Run the backfill
