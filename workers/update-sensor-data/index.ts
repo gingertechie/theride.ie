@@ -57,59 +57,74 @@ export default {
         return;
       }
 
-      // Process each sensor report
+      // Fetch all our segment IDs in one query to avoid per-sensor lookups
+      const { results: ourSegments } = await env.DB
+        .prepare('SELECT segment_id FROM sensor_locations')
+        .all<{ segment_id: number }>();
+
+      const ourSegmentIds = new Set(ourSegments.map(s => s.segment_id));
+      console.log(`Database has ${ourSegmentIds.size} registered sensors`);
+
+      // Filter Telraam data to only sensors we track
+      const relevantReports = data.features
+        .map(f => f.properties)
+        .filter(report => ourSegmentIds.has(report.segment_id));
+
+      console.log(`Found ${relevantReports.length} matching sensors to update`);
+
+      if (relevantReports.length === 0) {
+        console.log('No matching sensors to update');
+        return;
+      }
+
+      // Batch update queries to avoid hitting subrequest limits
+      // Cloudflare allows up to 50 statements per batch
+      const BATCH_SIZE = 50;
       let updatedCount = 0;
-      let skippedCount = 0;
 
-      for (const feature of data.features) {
-        const report = feature.properties;
+      for (let i = 0; i < relevantReports.length; i += BATCH_SIZE) {
+        const batch = relevantReports.slice(i, i + BATCH_SIZE);
+
+        // Create batch of update statements
+        const statements = batch.map(report =>
+          env.DB.prepare(`
+            UPDATE sensor_locations
+            SET
+              bike = ?,
+              heavy = ?,
+              car = ?,
+              uptime = ?,
+              last_data_package = ?,
+              v85 = ?,
+              pedestrian = ?,
+              night = ?,
+              updated_at = datetime('now')
+            WHERE segment_id = ?
+          `).bind(
+            report.bike,
+            report.heavy,
+            report.car,
+            report.uptime,
+            report.last_data_package,
+            report.v85,
+            report.pedestrian,
+            report.night ?? null,
+            report.segment_id
+          )
+        );
+
         try {
-          // Check if this segment exists in our database
-          const existingSegment = await env.DB
-            .prepare('SELECT segment_id FROM sensor_locations WHERE segment_id = ?')
-            .bind(report.segment_id)
-            .first();
-
-          if (!existingSegment) {
-            skippedCount++;
-            continue;
-          }
-
-          // Update the sensor data
-          await env.DB
-            .prepare(`
-              UPDATE sensor_locations
-              SET
-                bike = ?,
-                heavy = ?,
-                car = ?,
-                uptime = ?,
-                last_data_package = ?,
-                v85 = ?,
-                pedestrian = ?,
-                night = ?,
-                updated_at = datetime('now')
-              WHERE segment_id = ?
-            `)
-            .bind(
-              report.bike,
-              report.heavy,
-              report.car,
-              report.uptime,
-              report.last_data_package,
-              report.v85,
-              report.pedestrian,
-              report.night ?? null,
-              report.segment_id
-            )
-            .run();
-
-          updatedCount++;
+          // Execute batch
+          await env.DB.batch(statements);
+          updatedCount += batch.length;
+          console.log(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: Updated ${batch.length} sensors`);
         } catch (error) {
-          console.error(`Error updating segment ${report.segment_id}:`, error);
+          console.error(`Error updating batch starting at index ${i}:`, error);
+          // Continue with next batch even if one fails
         }
       }
 
+      const skippedCount = data.features.length - relevantReports.length;
       console.log(`Update complete: ${updatedCount} sensors updated, ${skippedCount} sensors skipped (not in database)`);
     } catch (error) {
       console.error('Error in scheduled worker:', error);
