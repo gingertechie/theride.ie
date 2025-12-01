@@ -24,6 +24,11 @@ const medals = [
   { emoji: '🥈', color: 'text-gray-300', glow: '', position: 2 },
   { emoji: '🥉', color: 'neon-orange', glow: 'glow-orange', position: 3 },
 ];
+
+// Convert county name to slug (e.g., "County Dublin" -> "dublin")
+const countyToSlug = (county: string) => {
+  return county.toLowerCase().replace('county ', '').trim();
+};
 ---
 
 <div class="w-full">
@@ -36,10 +41,13 @@ const medals = [
       {counties.slice(0, 3).map((county, index) => {
         const medal = medals[index];
         const isPodiumTop = index === 0;
+        const countySlug = countyToSlug(county.county);
 
         return (
-          <div
+          <a
+            href={`/county/${countySlug}`}
             class={`
+              block
               ${isPodiumTop ? 'md:col-start-2 md:row-start-1' : ''}
               ${index === 1 ? 'md:col-start-1 md:row-start-2' : ''}
               ${index === 2 ? 'md:col-start-3 md:row-start-2' : ''}
@@ -47,6 +55,7 @@ const medals = [
               ${isPodiumTop ? 'neon-border-green neon-glow-green' : 'border-2 border-velvet-charcoal'}
               transition-all duration-300 hover:scale-105
               ${isPodiumTop ? 'md:transform md:scale-110' : ''}
+              group cursor-pointer
             `}
           >
             {/* Medal Position */}
@@ -90,7 +99,12 @@ const medals = [
             {isPodiumTop && (
               <div class="mt-4 h-2 bg-gradient-to-r from-transparent via-neon-green to-transparent rounded-full neon-glow-green"></div>
             )}
-          </div>
+
+            {/* Click Indicator */}
+            <div class="mt-4 text-center text-neon-pink text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+              View Details →
+            </div>
+          </a>
         );
       })}
     </div>

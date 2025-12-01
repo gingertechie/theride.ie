@@ -231,3 +231,53 @@ export async function getTopCountiesByBikes(
 
   return results || [];
 }
+
+/**
+ * Get detailed stats for a specific county
+ */
+export interface CountyDetails {
+  county: string;
+  total_bikes: number;
+  sensor_count: number;
+  avg_bikes_per_sensor: number;
+  sensors: SensorLocation[];
+}
+
+export async function getCountyDetails(
+  db: D1Database,
+  county: string
+): Promise<CountyDetails | null> {
+  // Get county statistics
+  const stats = await db
+    .prepare(`
+      SELECT
+        county,
+        COALESCE(SUM(bike), 0) as total_bikes,
+        COUNT(*) as sensor_count,
+        COALESCE(SUM(bike) / COUNT(*), 0) as avg_bikes_per_sensor
+      FROM sensor_locations
+      WHERE county = ?
+      GROUP BY county
+    `)
+    .bind(county)
+    .first<CountyStats>();
+
+  if (!stats) {
+    return null;
+  }
+
+  // Get all sensors for this county
+  const { results: sensors } = await db
+    .prepare(`
+      SELECT * FROM sensor_locations
+      WHERE county = ?
+      ORDER BY bike DESC NULLS LAST, segment_id
+    `)
+    .bind(county)
+    .all<SensorLocation>();
+
+  return {
+    ...stats,
+    sensors: sensors || [],
+  };
+}

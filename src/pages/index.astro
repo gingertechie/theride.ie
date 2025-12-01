@@ -1,6 +1,7 @@
 ---
 import MinimalLayout from "../layouts/MinimalLayout.astro";
 import CountyLeaderboard from "../components/sections/CountyLeaderboard.astro";
+import CountiesGrid from "../components/sections/CountiesGrid.astro";
 
 // Fetch national stats from API
 const response = await fetch(`${Astro.url.origin}/api/stats/national.json`);
@@ -8,11 +9,15 @@ const result = await response.json();
 
 const stats = result.success ? result.data : null;
 
-// Fetch county leaderboard data
-const countiesResponse = await fetch(`${Astro.url.origin}/api/stats/counties.json`);
+// Fetch county leaderboard data (top 3 for podium)
+const countiesResponse = await fetch(`${Astro.url.origin}/api/stats/counties.json?limit=3`);
 const countiesResult = await countiesResponse.json();
-
 const counties = countiesResult.success ? countiesResult.data : [];
+
+// Fetch ALL counties data for the counties grid (high limit to ensure we get all 32 counties)
+const allCountiesResponse = await fetch(`${Astro.url.origin}/api/stats/counties.json?limit=100`);
+const allCountiesResult = await allCountiesResponse.json();
+const allCounties = allCountiesResult.success ? allCountiesResult.data : [];
 ---
 
 <MinimalLayout
@@ -61,6 +66,11 @@ const counties = countiesResult.success ? countiesResult.data : [];
         <div class="mt-20">
           <div class="neon-divider mb-12"></div>
           <CountyLeaderboard counties={counties} />
+        </div>
+
+        <!-- All Counties Navigation Grid -->
+        <div class="mt-20">
+          <CountiesGrid counties={allCounties} />
         </div>
       ) : (
         <!-- Error State -->

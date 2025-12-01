@@ -1,0 +1,164 @@
+---
+/**
+ * Counties Navigation Grid Component
+ * Displays all counties with quick stats and links to county pages
+ * Follows the Velvet & Neon design system with varied color accents
+ */
+
+interface CountyStats {
+  county: string;
+  total_bikes: number;
+  sensor_count: number;
+  avg_bikes_per_sensor: number;
+}
+
+interface Props {
+  counties: CountyStats[];
+}
+
+const { counties } = Astro.props;
+
+// All counties we want to display (in case some don't have data yet)
+const allCounties = [
+  { name: 'County Dublin', slug: 'dublin' },
+  { name: 'County Cork', slug: 'cork' },
+  { name: 'County Clare', slug: 'clare' },
+  { name: 'County Galway', slug: 'galway' },
+  { name: 'County Kildare', slug: 'kildare' },
+  { name: 'County Mayo', slug: 'mayo' },
+  { name: 'County Meath', slug: 'meath' },
+  { name: 'County Wexford', slug: 'wexford' },
+];
+
+// Color scheme for visual variety - cycling through neon colors
+const colorSchemes = [
+  { border: 'border-neon-cyan', text: 'text-neon-cyan', glow: 'neon-glow-cyan', name: 'cyan' },
+  { border: 'border-neon-pink', text: 'text-neon-pink', glow: 'neon-glow-pink', name: 'pink' },
+  { border: 'border-neon-yellow', text: 'text-neon-yellow', glow: 'neon-glow-yellow', name: 'yellow' },
+  { border: 'border-neon-orange', text: 'text-neon-orange', glow: 'neon-glow-orange', name: 'orange' },
+];
+
+// Merge county data with display info
+const countyDisplay = allCounties.map((county, index) => {
+  const data = counties.find(c => c.county === county.name);
+  const colorScheme = colorSchemes[index % colorSchemes.length];
+
+  return {
+    ...county,
+    data,
+    colorScheme,
+  };
+});
+---
+
+<div class="w-full">
+  <div class="neon-divider mb-12"></div>
+
+  <h2 class="text-2xl md:text-4xl text-white mb-4 text-center font-medium">
+    Explore <span class="greenhead text-glow-green">Counties</span>
+  </h2>
+  <p class="text-text-muted text-center mb-10 max-w-2xl mx-auto">
+    Dive into local cycling data from sensors across Ireland
+  </p>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
+    {countyDisplay.map((county) => (
+      <a
+        href={`/county/${county.slug}`}
+        class={`
+          block bg-velvet-midnight rounded-xl p-6
+          border-2 ${county.colorScheme.border}
+          transition-all duration-300
+          hover:${county.colorScheme.glow}
+          hover:scale-105 hover:transform
+          group cursor-pointer
+          relative overflow-hidden
+        `}
+      >
+        {/* Hover gradient background */}
+        <div class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300 bg-gradient-to-br from-white to-transparent"></div>
+
+        {/* Content */}
+        <div class="relative z-10">
+          {/* County Name */}
+          <h3 class={`text-xl font-bold mb-4 ${county.colorScheme.text} transition-all duration-300`}>
+            {county.name.replace('County ', '')}
+          </h3>
+
+          {county.data ? (
+            <>
+              {/* Bike Count */}
+              <div class="mb-3">
+                <div class={`text-3xl font-bold ${county.colorScheme.text}`}>
+                  {Math.round(county.data.total_bikes).toLocaleString()}
+                </div>
+                <div class="text-text-muted text-xs">bikes counted</div>
+              </div>
+
+              {/* Sensor Count */}
+              <div class="flex items-center gap-2 pt-3 border-t border-velvet-charcoal">
+                <svg class="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <div class="text-text-secondary text-sm">
+                  {county.data.sensor_count} {county.data.sensor_count === 1 ? 'sensor' : 'sensors'}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div class="mb-4">
+              <div class="text-text-muted text-sm">No data yet</div>
+            </div>
+          )}
+
+          {/* View Link Indicator */}
+          <div class={`
+            mt-4 flex items-center gap-1 text-sm
+            ${county.colorScheme.text}
+            opacity-0 group-hover:opacity-100 transition-opacity
+          `}>
+            <span>View details</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </div>
+        </div>
+      </a>
+    ))}
+  </div>
+
+  {/* Footer note */}
+  <div class="text-center mt-10">
+    <p class="text-text-muted text-sm">
+      Click any county to explore detailed sensor data and local cycling statistics
+    </p>
+  </div>
+</div>
+
+<style>
+  /* Additional glow effects for orange */
+  .neon-glow-orange {
+    box-shadow: 0 0 10px rgba(255, 107, 26, 0.5),
+                0 0 20px rgba(255, 107, 26, 0.3),
+                0 0 30px rgba(255, 107, 26, 0.2);
+  }
+
+  .hover\:neon-glow-orange:hover {
+    box-shadow: 0 0 10px rgba(255, 107, 26, 0.5),
+                0 0 20px rgba(255, 107, 26, 0.3),
+                0 0 30px rgba(255, 107, 26, 0.2);
+  }
+
+  .hover\:neon-glow-cyan:hover {
+    box-shadow: var(--glow-cyan);
+  }
+
+  .hover\:neon-glow-pink:hover {
+    box-shadow: var(--glow-pink);
+  }
+
+  .hover\:neon-glow-yellow:hover {
+    box-shadow: var(--glow-yellow);
+  }
+</style>

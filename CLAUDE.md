@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an Astro-based static website (originally based on the "Positivus" theme for digital marketing agencies) deployed on Cloudflare. The site uses server-side rendering (SSR) with the Cloudflare adapter.
+"The Ride" is an Astro-based cycling data visualization platform deployed on Cloudflare. The site showcases real-time bike counts from Telraam sensors across Ireland with a distinctive "Velvet & Neon" design aesthetic. The site uses server-side rendering (SSR) with the Cloudflare adapter and Cloudflare D1 for data storage.
 
 ## Build and Development Commands
 
@@ -44,31 +44,42 @@ npm run astro -- <command>
 
 ```
 src/
-├── pages/           # File-based routing
-│   ├── index.astro  # Homepage
-│   ├── about.astro
-│   ├── pricing.astro
-│   ├── services/    # Nested routes
-│   └── articles/    # Blog with dynamic routes
-│       ├── [...slug].astro      # Individual article pages
-│       ├── tag/[...tag].astro   # Tag filtering
-│       └── api/search.json.ts   # Search API endpoint
-├── layouts/         # Page templates
-│   ├── MainLayout.astro  # Primary layout with Navbar/Footer
-│   └── MainHead.astro    # <head> tag configuration
+├── pages/                  # File-based routing
+│   ├── index.astro         # National dashboard (homepage)
+│   ├── county/
+│   │   └── [slug].astro    # Dynamic county pages (hot pink neon theme)
+│   └── api/
+│       └── stats/
+│           ├── national.json.ts      # National statistics endpoint
+│           ├── counties.json.ts      # County leaderboard endpoint
+│           └── county/
+│               └── [county].json.ts  # County details endpoint
+├── layouts/                # Page templates
+│   ├── MinimalLayout.astro # Primary layout for dashboard pages
+│   └── MainHead.astro      # <head> tag configuration
 ├── components/
-│   ├── sections/    # Large page sections (Hero, Contact, etc.)
-│   ├── ui/          # Reusable UI components
-│   ├── seo/         # SEO components
-│   └── Icons/       # Icon components
-├── content/
-│   ├── blog/        # Markdown blog posts
-│   └── config.ts    # Content collection schema (Zod)
-├── data/            # Static JSON data files
+│   ├── sections/
+│   │   └── CountyLeaderboard.astro   # Top 3 counties podium display
+│   ├── ui/                 # Reusable UI components
+│   └── seo/                # SEO components
 ├── styles/
-│   └── global.css   # Tailwind config + custom styles
-└── utils/           # Helper functions and scripts
+│   └── global.css          # Tailwind config + Velvet & Neon custom styles
+├── utils/
+│   └── db.ts               # D1 database utility functions
+└── workers/
+    └── update-sensor-data.ts # Cloudflare Worker for Telraam API sync
 ```
+
+### Key Routes
+
+- `/` - National dashboard with aggregated bike counts and county leaderboard
+- `/county/{slug}` - County-specific pages (dublin, cork, clare, galway, kildare, mayo, meath, wexford)
+  - Features hot pink neon theme to differentiate from national dashboard
+  - Shows total bikes, average per sensor, and all sensor listings
+  - Each sensor links to Telraam website: `https://telraam.net/en/location/{segment_id}`
+- `/api/stats/national.json` - National aggregated statistics
+- `/api/stats/counties.json` - Top counties by bike count (default limit: 3)
+- `/api/stats/county/{county}.json` - Detailed county data with all sensors
 
 ### Key Conventions
 
@@ -77,11 +88,24 @@ src/
 
 **Path Aliases**: TypeScript is configured with `@/*` mapping to `src/*` for imports.
 
-**Styling System**:
-- CSS custom properties defined in `src/styles/global.css` (colors: `--green`, `--black`, `--dark`, `--gray`, `--white`)
-- Custom button classes: `.btn-primary`, `.btn-secondary`, `.btn-tertiary`
-- Custom heading highlight classes: `.greenhead`, `.whitehead`, `.blackhead`
-- Custom font outline utilities: `.font-outline`, `.font-outline-sm`
+**Styling System - Velvet & Neon Design**:
+- **Velvet Base Colors** (defined in `src/styles/global.css`):
+  - `--velvet-black: #0a0a0a` - Matte black, primary background
+  - `--velvet-charcoal: #1a1a1a` - Deep charcoal, secondary background
+  - `--velvet-midnight: #0d1117` - Midnight, card backgrounds
+- **Neon Accent Colors**:
+  - `--neon-green: #39FF14` - Electric neon green, primary cycling accent
+  - `--neon-yellow: #CCFF00` - Hi-viz yellow, building-site aesthetic
+  - `--neon-cyan: #00F0FF` - Electric cyan, data visualization
+  - `--neon-pink: #FF10F0` - Hot pink, county pages accent
+- **Glow Effects**: `--glow-green`, `--glow-yellow`, `--glow-cyan`, `--glow-pink` (normal and strong variants)
+- **Custom Classes**:
+  - Button classes: `.btn-primary`, `.btn-secondary`, `.btn-tertiary`
+  - Heading highlights: `.greenhead`, `.yellowhead`, `.neonhead`, `.pinkhead`
+  - Text glow: `.text-glow-green`, `.text-glow-yellow`, `.text-glow-pink`
+  - Neon borders: `.neon-border-green`, `.neon-border-yellow`, `.neon-border-pink`
+  - Dividers: `.neon-divider`, `.neon-divider-pink`
+  - Animations: `.neon-pulse`, `.neon-pulse-pink`
 
 **Smooth Scrolling**: Lenis is initialized via `src/utils/lenis.js` and loaded in the MainLayout. Custom CSS classes handle Lenis states (`.lenis`, `.lenis-smooth`, `.lenis-stopped`).
 

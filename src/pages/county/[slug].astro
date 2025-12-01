@@ -1,0 +1,257 @@
+---
+import MinimalLayout from "@/layouts/MinimalLayout.astro";
+
+// Get county from slug
+const { slug } = Astro.params;
+
+// County name mapping (slug to full name)
+const countyMap: Record<string, string> = {
+  'dublin': 'County Dublin',
+  'cork': 'County Cork',
+  'clare': 'County Clare',
+  'galway': 'County Galway',
+  'kildare': 'County Kildare',
+  'mayo': 'County Mayo',
+  'meath': 'County Meath',
+  'wexford': 'County Wexford',
+};
+
+const countyName = countyMap[slug?.toLowerCase() || ''] || '';
+
+if (!countyName) {
+  return Astro.redirect('/404');
+}
+
+// Fetch county data from API
+const response = await fetch(`${Astro.url.origin}/api/stats/county/${countyName}.json`);
+const result = await response.json();
+
+const countyData = result.success ? result.data : null;
+
+if (!countyData) {
+  return Astro.redirect('/404');
+}
+---
+
+<MinimalLayout
+  title={`${countyData.county} | The Ride`}
+  description={`Cycling statistics for ${countyData.county} - ${countyData.sensor_count} sensors tracking bike counts across the county`}
+>
+  <!-- County Dashboard Section -->
+  <section class="bg-velvet-black min-h-screen py-20 px-4 md:px-6">
+    <div class="container mx-auto max-w-6xl">
+
+      <!-- Back Navigation -->
+      <div class="mb-8">
+        <a
+          href="/"
+          class="inline-flex items-center text-neon-pink hover:text-white transition-colors duration-300 group"
+        >
+          <svg class="w-5 h-5 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          Back to National Dashboard
+        </a>
+      </div>
+
+      <!-- County Header -->
+      <h1 class="text-4xl md:text-6xl font-bold text-white mb-6 text-center">
+        <span class="pinkhead text-glow-pink">{countyData.county}</span>
+      </h1>
+      <p class="text-text-secondary text-xl text-center mb-12">
+        Cycling data from Telraam sensors across the county
+      </p>
+      <div class="neon-divider-pink mb-16"></div>
+
+      <!-- County Stats Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+        <!-- Total Bikes -->
+        <div class="bg-velvet-midnight p-8 rounded-2xl neon-border-cyan neon-pulse-cyan">
+          <h2 class="text-text-secondary text-lg mb-2">Total Bike Rides</h2>
+          <div class="text-5xl md:text-7xl font-bold text-neon-cyan mb-2">
+            {Math.round(countyData.total_bikes).toLocaleString()}
+          </div>
+          <p class="text-text-muted text-sm">bikes counted across the county</p>
+        </div>
+
+        <!-- Average per Sensor -->
+        <div class="bg-velvet-midnight p-8 rounded-2xl neon-border-pink">
+          <h2 class="text-text-secondary text-lg mb-2">Average per Sensor</h2>
+          <div class="text-5xl md:text-7xl font-bold text-neon-pink mb-2">
+            {Math.round(countyData.avg_bikes_per_sensor).toLocaleString()}
+          </div>
+          <p class="text-text-muted text-sm">from {countyData.sensor_count} active sensors</p>
+        </div>
+      </div>
+
+      <!-- Sensors Section -->
+      <div class="mt-16">
+        <div class="neon-divider-pink mb-12"></div>
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-8">
+          Sensor <span class="pinkhead text-glow-pink">Locations</span>
+        </h2>
+
+        {countyData.sensors.length > 0 ? (
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {countyData.sensors.map((sensor: any) => (
+              <a
+                href={`https://telraam.net/en/location/${sensor.segment_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="block bg-velvet-midnight rounded-xl p-6 border-2 border-velvet-charcoal hover:border-neon-pink transition-all duration-300 hover:neon-glow-pink hover:transform hover:scale-105 group"
+              >
+                {/* Sensor Header */}
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex-1">
+                    <h3 class="text-lg font-bold text-white group-hover:text-neon-pink transition-colors">
+                      {sensor.locality || sensor.city_town || `Sensor ${sensor.segment_id}`}
+                    </h3>
+                    <p class="text-text-muted text-sm mt-1">#{sensor.segment_id}</p>
+                  </div>
+                  <svg class="w-5 h-5 text-neon-pink opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                  </svg>
+                </div>
+
+                {/* Bike Count */}
+                <div class="mb-4">
+                  <div class="text-3xl font-bold text-neon-cyan">
+                    {sensor.bike ? Math.round(sensor.bike).toLocaleString() : '—'}
+                  </div>
+                  <p class="text-text-muted text-xs">bikes counted</p>
+                </div>
+
+                {/* Additional Stats */}
+                <div class="grid grid-cols-2 gap-3 pt-4 border-t border-velvet-charcoal">
+                  <div>
+                    <div class="text-neon-orange text-sm font-medium">
+                      {sensor.car ? Math.round(sensor.car).toLocaleString() : '—'}
+                    </div>
+                    <div class="text-text-muted text-xs">cars</div>
+                  </div>
+                  <div>
+                    <div class="text-neon-yellow text-sm font-medium">
+                      {sensor.pedestrian ? Math.round(sensor.pedestrian).toLocaleString() : '—'}
+                    </div>
+                    <div class="text-text-muted text-xs">pedestrians</div>
+                  </div>
+                </div>
+
+                {/* Location */}
+                {sensor.latitude && sensor.longitude && (
+                  <div class="mt-3 pt-3 border-t border-velvet-charcoal">
+                    <p class="text-text-muted text-xs font-mono">
+                      {sensor.latitude.toFixed(4)}, {sensor.longitude.toFixed(4)}
+                    </p>
+                  </div>
+                )}
+
+                {/* View on Telraam indicator */}
+                <div class="mt-4 flex items-center text-neon-pink text-sm group-hover:text-glow-pink">
+                  <span>View on Telraam</span>
+                  <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </div>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div class="text-center py-12">
+            <p class="text-text-muted text-lg">No sensors found for this county</p>
+          </div>
+        )}
+      </div>
+
+      <!-- Footer Note -->
+      <div class="mt-16 text-center">
+        <div class="neon-divider-pink mb-8"></div>
+        <p class="text-text-muted text-sm">
+          Data from <a href="https://telraam.net" target="_blank" rel="noopener noreferrer" class="text-neon-pink hover:text-white transition-colors">Telraam</a> traffic sensors
+        </p>
+      </div>
+    </div>
+  </section>
+</MinimalLayout>
+
+<style>
+  /* Multi-Color Neon Styles for County Pages */
+
+  /* Pink - County Identity */
+  .pinkhead {
+    background-color: var(--neon-pink);
+    color: var(--velvet-black);
+    border-radius: 7px;
+    padding: 0 7px;
+    box-shadow: var(--glow-pink);
+    font-weight: 600;
+  }
+
+  .text-glow-pink {
+    text-shadow: var(--glow-pink);
+  }
+
+  .neon-border-pink {
+    border: 2px solid var(--neon-pink);
+  }
+
+  .neon-glow-pink {
+    box-shadow: var(--glow-pink);
+  }
+
+  .neon-divider-pink {
+    position: relative;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--neon-pink), transparent);
+    box-shadow: var(--glow-pink);
+  }
+
+  .neon-divider-pink::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon-pink), transparent);
+    opacity: 0.5;
+  }
+
+  @keyframes neon-pulse-pink {
+    0%, 100% {
+      opacity: 1;
+      box-shadow: var(--glow-pink);
+    }
+    50% {
+      opacity: 0.8;
+      box-shadow: var(--glow-pink-strong);
+    }
+  }
+
+  .neon-pulse-pink {
+    animation: neon-pulse-pink 2s ease-in-out infinite;
+  }
+
+  /* Cyan - Bike Data */
+  .neon-border-cyan {
+    border: 2px solid var(--neon-cyan);
+  }
+
+  @keyframes neon-pulse-cyan {
+    0%, 100% {
+      opacity: 1;
+      box-shadow: var(--glow-cyan);
+    }
+    50% {
+      opacity: 0.8;
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.8),
+                  0 0 20px rgba(0, 240, 255, 0.6),
+                  0 0 40px rgba(0, 240, 255, 0.4),
+                  0 0 60px rgba(0, 240, 255, 0.2);
+    }
+  }
+
+  .neon-pulse-cyan {
+    animation: neon-pulse-cyan 2s ease-in-out infinite;
+  }
+</style>
