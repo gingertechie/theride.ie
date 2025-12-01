@@ -252,8 +252,17 @@ export async function getTopCountiesByBikes(
 /**
  * Get detailed stats for a specific county (daily totals from hourly data)
  */
-export interface SensorWithDailyTotal extends SensorLocation {
-  daily_bike_count: number;
+export interface SensorWithDailyTotal {
+  segment_id: number;
+  latitude: number;
+  longitude: number;
+  locality: string | null;
+  city_town: string | null;
+  county: string | null;
+  bike: number;
+  car: number;
+  pedestrian: number;
+  heavy: number;
 }
 
 export interface CountyDetails {
@@ -297,15 +306,23 @@ export async function getCountyDetails(
   const { results: sensors } = await db
     .prepare(`
       SELECT
-        s.*,
-        COALESCE(SUM(h.bike), 0) as daily_bike_count
+        s.segment_id,
+        s.latitude,
+        s.longitude,
+        s.locality,
+        s.city_town,
+        s.county,
+        COALESCE(SUM(h.bike), 0) as bike,
+        COALESCE(SUM(h.car), 0) as car,
+        COALESCE(SUM(h.pedestrian), 0) as pedestrian,
+        COALESCE(SUM(h.heavy), 0) as heavy
       FROM sensor_locations s
       LEFT JOIN sensor_hourly_data h ON s.segment_id = h.segment_id
         AND h.hour_timestamp >= ?
         AND h.hour_timestamp < ?
       WHERE s.county = ?
       GROUP BY s.segment_id
-      ORDER BY daily_bike_count DESC, s.segment_id
+      ORDER BY bike DESC, s.segment_id
     `)
     .bind(yesterday.start, yesterday.end, county)
     .all<SensorWithDailyTotal>();
