@@ -8,6 +8,7 @@
     "start": "astro dev",
     "build": "astro check && astro build",
     "preview": "wrangler pages dev ./dist --d1=DB=theride-db",
+    "backfill": "npx tsx scripts/backfill-sensor-data.ts",
     "db:init-local": "npx wrangler d1 execute theride-db --local --config=wrangler.toml --file=./db/schema.sql && npx wrangler d1 execute theride-db --local --config=wrangler.toml --file=./db/migrations/0001_seed_sensor_locations.sql",
     "db:query-local": "npx wrangler d1 execute theride-db --local --config=wrangler.toml --command",
     "db:query-remote": "npx wrangler d1 execute theride-db --remote --command",
