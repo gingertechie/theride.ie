@@ -1,8 +1,8 @@
 {
-  "title": "Positivus",
-  "description": "Positivus is a simple and minimalistic blog theme for Ghost. It is designed to be a perfect starting point for your blog project.",
+  "title": "The Ride",
+  "description": "Ireland's cycling data visualization platform. Track bike counts from Telraam sensors across Irish counties in real-time with beautiful neon-glow dashboards.",
   "image": {
-    "src": "https://github.com/manulthanura/Positivus/raw/main/public/cover.png",
-    "alt": "Positivus"
+    "src": "/og-image.png",
+    "alt": "The Ride - Ireland's cycling data visualization platform"
   }
 }
