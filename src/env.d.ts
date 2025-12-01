@@ -43,21 +43,31 @@ interface D1ExecResult {
   duration: number;
 }
 
-// Sensor Location type
+// Sensor Location type (metadata only - traffic data stored in sensor_hourly_data)
 interface SensorLocation {
   segment_id: number;
   last_data_package: string;
   timezone: string;
-  date: string | null;
-  period: 'hourly' | 'daily' | 'monthly' | null;
-  uptime: number | null;
-  heavy: number | null;
-  car: number | null;
-  bike: number | null;
-  pedestrian: number | null;
-  v85: number | null;
   latitude: number;
   longitude: number;
+  country: string | null;
+  county: string | null;
+  city_town: string | null;
+  locality: string | null;
+  eircode: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Hourly sensor traffic data
+interface SensorHourlyData {
+  segment_id: number;
+  hour_timestamp: string; // ISO8601 datetime
+  bike: number;
+  car: number;
+  heavy: number;
+  pedestrian: number;
+  v85: number | null;
+  uptime: number | null;
+  created_at: string;
 }

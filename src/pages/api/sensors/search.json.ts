@@ -1,14 +1,14 @@
 import type { APIRoute } from 'astro';
-import { getSensorsInBounds, getSensorsByPeriod, getSensorsByDate } from '@/utils/db';
+import { getSensorsInBounds } from '@/utils/db';
 
 /**
  * POST /api/sensors/search.json
- * Search sensors by various criteria
+ * Search sensors by geographic criteria
  *
  * Body params:
  * - bounds: { minLat, maxLat, minLon, maxLon } - Geographic bounding box
- * - period: 'hourly' | 'daily' | 'monthly' - Aggregation period
- * - date: 'YYYY-MM-DD' - Specific date
+ *
+ * Note: period and date search removed as sensor_locations no longer stores traffic data
  */
 export const POST: APIRoute = async ({ locals, request }) => {
   try {
@@ -56,63 +56,10 @@ export const POST: APIRoute = async ({ locals, request }) => {
       );
     }
 
-    // Search by period
-    if (params.period) {
-      if (!['hourly', 'daily', 'monthly'].includes(params.period)) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Invalid period. Must be: hourly, daily, or monthly',
-          }),
-          {
-            status: 400,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-      }
-
-      const sensors = await getSensorsByPeriod(db, params.period);
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          data: sensors,
-          count: sensors.length,
-        }),
-        {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }
-
-    // Search by date
-    if (params.date) {
-      const sensors = await getSensorsByDate(db, params.date);
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          data: sensors,
-          count: sensors.length,
-        }),
-        {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }
-
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'No search criteria provided. Use bounds, period, or date.',
+        error: 'No search criteria provided. Use bounds parameter.',
       }),
       {
         status: 400,
