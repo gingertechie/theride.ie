@@ -218,19 +218,47 @@ async function insertHourlyData(
 
     for (const report of batch) {
       // Convert date + hour to ISO8601 timestamp
-      const hourTimestamp = `${report.date} ${String(report.hour).padStart(2, '0')}:00:00Z`;
+      // Telraam API may return date as ISO timestamp or date string, so parse it carefully
+      let dateStr: string;
+      if (report.date.includes('T')) {
+        // Full ISO timestamp like "2025-12-01T14:00:00.000Z"
+        // Extract just the date part and hour
+        const parsedDate = new Date(report.date);
+        const year = parsedDate.getUTCFullYear();
+        const month = String(parsedDate.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(parsedDate.getUTCDate()).padStart(2, '0');
+        const hour = String(parsedDate.getUTCHours()).padStart(2, '0');
+        dateStr = `${year}-${month}-${day}`;
+        const hourTimestamp = `${dateStr} ${hour}:00:00Z`;
 
-      values.push('(?, ?, ?, ?, ?, ?, ?, ?)');
-      params.push(
-        segmentId,
-        hourTimestamp,
-        report.bike,
-        report.car,
-        report.heavy,
-        report.pedestrian,
-        report.v85 ?? null,
-        report.uptime
-      );
+        values.push('(?, ?, ?, ?, ?, ?, ?, ?)');
+        params.push(
+          segmentId,
+          hourTimestamp,
+          report.bike,
+          report.car,
+          report.heavy,
+          report.pedestrian,
+          report.v85 ?? null,
+          report.uptime
+        );
+      } else {
+        // Simple date string like "2025-12-01" with separate hour field
+        dateStr = report.date;
+        const hourTimestamp = `${dateStr} ${String(report.hour).padStart(2, '0')}:00:00Z`;
+
+        values.push('(?, ?, ?, ?, ?, ?, ?, ?)');
+        params.push(
+          segmentId,
+          hourTimestamp,
+          report.bike,
+          report.car,
+          report.heavy,
+          report.pedestrian,
+          report.v85 ?? null,
+          report.uptime
+        );
+      }
     }
 
     // Execute batch insert
