@@ -94,6 +94,9 @@ export default {
             continue;
           }
 
+          // Sleep 5 seconds to avoid Telraam API rate limits (429 errors)
+          await sleep(5000);
+
           // Fetch hourly data from Telraam
           const hourlyData = await fetchHourlyData(
             env.TELRAAM_API_KEY,
@@ -260,4 +263,11 @@ function formatTelraamDateTime(date: Date): string {
   const second = String(date.getUTCSeconds()).padStart(2, '0');
 
   return `${year}-${month}-${day} ${hour}:${minute}:${second}Z`;
+}
+
+/**
+ * Sleep for specified milliseconds to avoid API rate limits
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
