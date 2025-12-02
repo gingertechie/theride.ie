@@ -1,33 +1,20 @@
 ---
 import MinimalLayout from "@/layouts/MinimalLayout.astro";
+import { slugToCounty } from "@/utils/county-slugs";
 
 // Get county from slug
 const { slug } = Astro.params;
 
-// County name mapping (slug to full name)
-const countyMap: Record<string, string> = {
-  'dublin': 'County Dublin',
-  'cork': 'County Cork',
-  'clare': 'County Clare',
-  'galway': 'County Galway',
-  'kildare': 'County Kildare',
-  'mayo': 'County Mayo',
-  'meath': 'County Meath',
-  'wexford': 'County Wexford',
-};
+// Convert slug to county name format
+const countyName = slug ? slugToCounty(slug) : '';
 
-const countyName = countyMap[slug?.toLowerCase() || ''] || '';
-
-if (!countyName) {
-  return Astro.redirect('/404');
-}
-
-// Fetch county data from API
+// Fetch county data from API (API validates existence)
 const response = await fetch(`${Astro.url.origin}/api/stats/county/${countyName}.json`);
 const result = await response.json();
 
 const countyData = result.success ? result.data : null;
 
+// If county doesn't exist or has no data, redirect to 404
 if (!countyData) {
   return Astro.redirect('/404');
 }

@@ -5,6 +5,8 @@
  * Follows the Velvet & Neon design system with varied color accents
  */
 
+import { countyToSlug } from "@/utils/county-slugs";
+
 interface CountyStats {
   county: string;
   total_bikes: number;
@@ -18,18 +20,6 @@ interface Props {
 
 const { counties } = Astro.props;
 
-// All counties we want to display (in case some don't have data yet)
-const allCounties = [
-  { name: 'County Dublin', slug: 'dublin' },
-  { name: 'County Cork', slug: 'cork' },
-  { name: 'County Clare', slug: 'clare' },
-  { name: 'County Galway', slug: 'galway' },
-  { name: 'County Kildare', slug: 'kildare' },
-  { name: 'County Mayo', slug: 'mayo' },
-  { name: 'County Meath', slug: 'meath' },
-  { name: 'County Wexford', slug: 'wexford' },
-];
-
 // Color scheme for visual variety - cycling through neon colors
 const colorSchemes = [
   { border: 'border-neon-cyan', text: 'text-neon-cyan', glow: 'neon-glow-cyan', name: 'cyan' },
@@ -38,14 +28,15 @@ const colorSchemes = [
   { border: 'border-neon-orange', text: 'text-neon-orange', glow: 'neon-glow-orange', name: 'orange' },
 ];
 
-// Merge county data with display info
-const countyDisplay = allCounties.map((county, index) => {
-  const data = counties.find(c => c.county === county.name);
+// Generate display data dynamically from counties with data
+const countyDisplay = counties.map((countyData, index) => {
+  const slug = countyToSlug(countyData.county);
   const colorScheme = colorSchemes[index % colorSchemes.length];
 
   return {
-    ...county,
-    data,
+    name: countyData.county,
+    slug,
+    data: countyData,
     colorScheme,
   };
 });
