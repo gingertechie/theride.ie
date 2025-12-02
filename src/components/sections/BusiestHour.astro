@@ -15,15 +15,15 @@ const { hour, count, timestamp } = Astro.props;
 
 // Time of day context labels
 function getTimeOfDayLabel(hour: number): string {
-  if (hour >= 0 && hour < 5) return "That's the night owls and shift workers";
-  if (hour >= 5 && hour < 7) return "Early birds catching the sunrise";
-  if (hour >= 7 && hour < 10) return "Morning commute in full swing";
-  if (hour >= 10 && hour < 12) return "Mid-morning movers";
-  if (hour >= 12 && hour < 14) return "Lunchtime loops and errands";
-  if (hour >= 14 && hour < 16) return "Afternoon cruisers";
-  if (hour >= 17 && hour < 19) return "Evening commute getting it done";
-  if (hour >= 19 && hour < 21) return "After-work wind-down rides";
-  if (hour >= 21 && hour < 23) return "Late-night pedal pushers";
+  if (hour >= 0 && hour < 5) return "The night shift";
+  if (hour >= 5 && hour < 7) return "Early risers";
+  if (hour >= 7 && hour < 10) return "Workin' it";
+  if (hour >= 10 && hour < 12) return "Elevensies";
+  if (hour >= 12 && hour < 14) return "Midday madlads";
+  if (hour >= 14 && hour < 16) return "Afternoon delight";
+  if (hour >= 17 && hour < 19) return "Angelus delight";
+  if (hour >= 19 && hour < 21) return "Evening spin";
+  if (hour >= 21 && hour < 23) return "The late shift";
   return "Proper night owls out there";
 }
 
@@ -42,7 +42,7 @@ const formattedCount = count.toLocaleString();
 
 <section aria-label="Busiest cycling hour" class="w-full max-w-xl mx-auto my-8 px-4">
   <div
-    class="bg-velvet-midnight rounded-xl neon-border-pink p-6 transition-all duration-300 hover:neon-glow-pink"
+    class="bg-velvet-midnight rounded-xl border-neon-pink p-6 transition-all duration-300 hover:neon-glow-pink"
   >
     <!-- Header with emoji -->
     <div class="flex items-center gap-2 mb-3">
