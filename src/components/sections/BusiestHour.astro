@@ -42,28 +42,28 @@ const formattedCount = count.toLocaleString();
 
 <section aria-label="Busiest cycling hour" class="w-full max-w-xl mx-auto my-8 px-4">
   <div
-    class="bg-velvet-midnight rounded-xl neon-border-cyan p-6 transition-all duration-300 hover:neon-glow-cyan"
+    class="bg-velvet-midnight rounded-xl neon-border-pink p-6 transition-all duration-300 hover:neon-glow-pink"
   >
     <!-- Header with emoji -->
     <div class="flex items-center gap-2 mb-3">
       <span class="text-2xl" aria-hidden="true">⏰</span>
       <h3 class="text-lg md:text-xl text-text-secondary font-medium">
-        Yesterday's Rush Hour
+        The Busiest Hour
       </h3>
     </div>
 
     <!-- Main stat -->
     <div class="mb-3">
-      <span class="text-3xl md:text-4xl font-bold text-neon-cyan text-glow-cyan">
+      <span class="text-3xl md:text-4xl font-bold text-neon-pink text-glow-pink">
         {displayHour}
       </span>
       <span class="text-text-secondary text-base md:text-lg ml-2">
-        - {formattedCount} bikes on the go
+        - {formattedCount} cyclists saddled-up and sweaty
       </span>
     </div>
 
-    <!-- Thin cyan divider -->
-    <div class="h-px bg-gradient-to-r from-transparent via-neon-cyan to-transparent opacity-30 my-3"></div>
+    <!-- Thin pink divider -->
+    <div class="h-px bg-gradient-to-r from-transparent via-neon-pink to-transparent opacity-30 my-3"></div>
 
     <!-- Context label -->
     <p class="text-text-muted text-sm">
