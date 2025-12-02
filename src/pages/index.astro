@@ -2,6 +2,7 @@
 import MinimalLayout from "../layouts/MinimalLayout.astro";
 import CountyLeaderboard from "../components/sections/CountyLeaderboard.astro";
 import CountiesGrid from "../components/sections/CountiesGrid.astro";
+import BusiestHour from "../components/sections/BusiestHour.astro";
 
 // Fetch national stats from API
 const response = await fetch(`${Astro.url.origin}/api/stats/national.json`);
@@ -18,6 +19,11 @@ const counties = countiesResult.success ? countiesResult.data : [];
 const allCountiesResponse = await fetch(`${Astro.url.origin}/api/stats/counties.json?limit=100`);
 const allCountiesResult = await allCountiesResponse.json();
 const allCounties = allCountiesResult.success ? allCountiesResult.data : [];
+
+// Fetch busiest hour data
+const busiestHourResponse = await fetch(`${Astro.url.origin}/api/stats/busiest-hour.json`);
+const busiestHourResult = await busiestHourResponse.json();
+const busiestHour = busiestHourResult.success ? busiestHourResult.data : null;
 ---
 
 <MinimalLayout
@@ -61,6 +67,14 @@ const allCounties = allCountiesResult.success ? allCountiesResult.data : [];
             })}
           </p>
         </div>
+
+        <!-- Busiest Hour Widget -->
+        {busiestHour && (
+          <BusiestHour
+            hour={busiestHour.hour}
+            count={busiestHour.count}
+          />
+        )}
 
         <!-- County Leaderboard -->
         <div class="mt-20">

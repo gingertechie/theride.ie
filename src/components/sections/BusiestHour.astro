@@ -1,0 +1,73 @@
+---
+/**
+ * Busiest Hour Component
+ * Displays yesterday's peak cycling hour across Ireland
+ * Part of The Ride's Velvet & Neon design system
+ */
+
+interface Props {
+  hour: number;          // 0-23 (24-hour format)
+  count: number;         // Total bikes for that hour
+  timestamp?: string;    // ISO timestamp of the data
+}
+
+const { hour, count, timestamp } = Astro.props;
+
+// Time of day context labels
+function getTimeOfDayLabel(hour: number): string {
+  if (hour >= 0 && hour < 5) return "That's the night owls and shift workers";
+  if (hour >= 5 && hour < 7) return "Early birds catching the sunrise";
+  if (hour >= 7 && hour < 10) return "Morning commute in full swing";
+  if (hour >= 10 && hour < 12) return "Mid-morning movers";
+  if (hour >= 12 && hour < 14) return "Lunchtime loops and errands";
+  if (hour >= 14 && hour < 16) return "Afternoon cruisers";
+  if (hour >= 17 && hour < 19) return "Evening commute getting it done";
+  if (hour >= 19 && hour < 21) return "After-work wind-down rides";
+  if (hour >= 21 && hour < 23) return "Late-night pedal pushers";
+  return "Proper night owls out there";
+}
+
+// Format hour for display (12-hour format with am/pm)
+function formatHour(hour: number): string {
+  if (hour === 0) return "12am";
+  if (hour === 12) return "12pm";
+  if (hour > 12) return `${hour - 12}pm`;
+  return `${hour}am`;
+}
+
+const displayHour = formatHour(hour);
+const contextLabel = getTimeOfDayLabel(hour);
+const formattedCount = count.toLocaleString();
+---
+
+<section aria-label="Busiest cycling hour" class="w-full max-w-xl mx-auto my-8 px-4">
+  <div
+    class="bg-velvet-midnight rounded-xl neon-border-cyan p-6 transition-all duration-300 hover:neon-glow-cyan"
+  >
+    <!-- Header with emoji -->
+    <div class="flex items-center gap-2 mb-3">
+      <span class="text-2xl" aria-hidden="true">⏰</span>
+      <h3 class="text-lg md:text-xl text-text-secondary font-medium">
+        Yesterday's Rush Hour
+      </h3>
+    </div>
+
+    <!-- Main stat -->
+    <div class="mb-3">
+      <span class="text-3xl md:text-4xl font-bold text-neon-cyan text-glow-cyan">
+        {displayHour}
+      </span>
+      <span class="text-text-secondary text-base md:text-lg ml-2">
+        - {formattedCount} bikes on the go
+      </span>
+    </div>
+
+    <!-- Thin cyan divider -->
+    <div class="h-px bg-gradient-to-r from-transparent via-neon-cyan to-transparent opacity-30 my-3"></div>
+
+    <!-- Context label -->
+    <p class="text-text-muted text-sm">
+      ({contextLabel})
+    </p>
+  </div>
+</section>
