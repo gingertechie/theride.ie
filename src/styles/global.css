@@ -228,6 +228,14 @@
       box-shadow: var(--glow-cyan);
     }
 
+    .neon-glow-pink {
+      box-shadow: var(--glow-pink);
+    }
+
+    .neon-glow-pink-strong {
+      box-shadow: var(--glow-pink-strong);
+    }
+
     /* Text Glow Effects */
     .text-glow-green {
       text-shadow: var(--glow-green);
@@ -241,6 +249,10 @@
       text-shadow: var(--glow-cyan);
     }
 
+    .text-glow-pink {
+      text-shadow: var(--glow-pink);
+    }
+
     /* Neon Border Utilities */
     .neon-border-green {
       border: 2px solid var(--neon-green);
@@ -252,6 +264,10 @@
 
     .neon-border-cyan {
       border: 2px solid var(--neon-cyan);
+    }
+
+    .neon-border-pink {
+      border: 2px solid var(--neon-pink);
     }
 
     /* Neon Divider - Thin Parallel Lines */
@@ -270,6 +286,24 @@
       right: 0;
       height: 1px;
       background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
+      opacity: 0.5;
+    }
+
+    .neon-divider-pink {
+      position: relative;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--neon-pink), transparent);
+      box-shadow: var(--glow-pink);
+    }
+
+    .neon-divider-pink::after {
+      content: '';
+      position: absolute;
+      top: 6px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--neon-pink), transparent);
       opacity: 0.5;
     }
 
@@ -299,6 +333,21 @@
 
     .neon-pulse {
       animation: neon-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes neon-pulse-pink {
+      0%, 100% {
+        opacity: 1;
+        box-shadow: var(--glow-pink);
+      }
+      50% {
+        opacity: 0.8;
+        box-shadow: var(--glow-pink-strong);
+      }
+    }
+
+    .neon-pulse-pink {
+      animation: neon-pulse-pink 2s ease-in-out infinite;
     }
   }
 }
