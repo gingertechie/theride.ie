@@ -58,16 +58,17 @@ export const GET: APIRoute = async ({ locals }) => {
     const yesterday = getYesterdayDateRange();
 
     // Query to find the hour with the most bikes
-    // Note: Using string interpolation for dates (safe - internally generated)
+    // Note: Using SUBSTR to extract hour from "YYYY-MM-DD HH:MM:SS" format
+    // Position 12-13 contains the hour (0-indexed position 11, length 2)
     const result = await db
       .prepare(`
         SELECT
-          CAST(strftime('%H', hour_timestamp) AS INTEGER) AS hour,
+          CAST(SUBSTR(hour_timestamp, 12, 2) AS INTEGER) AS hour,
           SUM(bike) AS total_bikes
         FROM sensor_hourly_data
         WHERE hour_timestamp >= "${yesterday.start}"
           AND hour_timestamp < "${yesterday.end}"
-        GROUP BY hour
+        GROUP BY SUBSTR(hour_timestamp, 12, 2)
         ORDER BY total_bikes DESC
         LIMIT 1
       `)
