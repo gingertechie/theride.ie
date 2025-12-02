@@ -189,7 +189,23 @@ async function insertHourlyData(
 
     const statements = batch.map(report => {
       // Convert date + hour to ISO8601 timestamp
-      const hourTimestamp = `${report.date} ${String(report.hour).padStart(2, '0')}:00:00Z`;
+      // Telraam API may return date as ISO timestamp or date string, so parse it carefully
+      let hourTimestamp: string;
+
+      if (report.date.includes('T')) {
+        // Full ISO timestamp like "2025-12-01T14:00:00.000Z"
+        // Extract just the date part and hour
+        const parsedDate = new Date(report.date);
+        const year = parsedDate.getUTCFullYear();
+        const month = String(parsedDate.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(parsedDate.getUTCDate()).padStart(2, '0');
+        const hour = String(parsedDate.getUTCHours()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        hourTimestamp = `${dateStr} ${hour}:00:00Z`;
+      } else {
+        // Simple date string like "2025-12-01" with separate hour field
+        hourTimestamp = `${report.date} ${String(report.hour).padStart(2, '0')}:00:00Z`;
+      }
 
       return db.prepare(`
         INSERT INTO sensor_hourly_data (
