@@ -4,7 +4,15 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(npm run dev:wrangler:*)"
+      "Bash(npm run dev:wrangler:*)",
+      "Bash(find:*)",
+      "Bash(npx wrangler d1 execute:*)",
+      "WebFetch(domain:telraam.net)",
+      "Bash(cat:*)",
+      "Bash(npm install)",
+      "Bash(wrangler deploy:*)",
+      "Bash(npx wrangler deploy)",
+      "Bash(npx wrangler deploy:*)"
     ],
     "deny": [],
     "ask": []
