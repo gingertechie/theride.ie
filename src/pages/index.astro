@@ -40,6 +40,17 @@ const busiestHour = busiestHourResult.success ? busiestHourResult.data : null;
       <p class="text-text-secondary text-xl text-center mb-12">
         Not that kind of rides, you animals
       </p>
+
+      <!-- Opening Context -->
+      <div class="max-w-3xl mx-auto mb-16">
+        <p class="text-text-secondary text-lg text-center leading-relaxed">
+          Welcome to the data they don't want you to see—except they do, because it's bloody brilliant.
+          Telraam sensors all over Ireland are counting cyclists in real-time, proving that bikes aren't
+          just for Lycra-clad lunatics on Sunday mornings. These numbers are real, the craic is real,
+          and the infrastructure is... well, they're working on that bit. But look at us go anyway.
+        </p>
+      </div>
+
       <div class="neon-divider mb-16"></div>
 
       {stats ? (
@@ -58,10 +69,7 @@ const busiestHour = busiestHourResult.success ? busiestHourResult.data : null;
         <!-- Metadata -->
         <div class="text-center mt-8">
           <p class="text-text-muted text-sm">
-            Data from {stats.sensor_count} active sensors
-          </p>
-          <p class="text-text-muted text-xs mt-2">
-            Last updated: {new Date(stats.last_updated).toLocaleString('en-IE', {
+            Intel from {stats.sensor_count} roadside sensors • Updated: {new Date(stats.last_updated).toLocaleString('en-IE', {
               dateStyle: 'medium',
               timeStyle: 'short'
             })}
@@ -76,15 +84,41 @@ const busiestHour = busiestHourResult.success ? busiestHourResult.data : null;
           />
         )}
 
-        <!-- County Leaderboard -->
+        <!-- The Rideyest County Section -->
         <div class="mt-20">
           <div class="neon-divider mb-12"></div>
+          <div class="max-w-3xl mx-auto mb-12">
+            <h2 class="text-3xl md:text-4xl font-medium text-white mb-6 text-center">
+              The <span class="greenhead text-glow-green">Rideyest</span> County
+            </h2>
+            <p class="text-text-secondary text-lg text-center leading-relaxed">
+              These aren't estimates or surveys or some gobshite with a clipboard. This is real bikes
+              passing real sensors on real roads — counted every single time a wheel spins past.
+              No guesswork, no waffle, just cold hard numbers from Telraam yokes watching the traffic
+              like nosey neighbours. This is who's actually cycling.
+            </p>
+          </div>
+
+        <!-- County Leaderboard -->
           <CountyLeaderboard counties={counties} />
         </div>
 
         <!-- All Counties Navigation Grid -->
         <div class="mt-20">
           <CountiesGrid counties={allCounties} />
+        </div>
+
+        <!-- Closing CTA -->
+        <div class="mt-20">
+          <div class="neon-divider mb-12"></div>
+          <div class="max-w-3xl mx-auto text-center">
+            <p class="text-text-secondary text-lg leading-relaxed">
+              Missing your county? Ah now, that's not on. The only reason a place doesn't show up here
+              is because there's no Telraam sensor counting yet—and that's a problem you can fix yourself.
+              Stick one of these clever yokes in your window, start tallying cyclists, and give your local
+              councillors something real to ignore. C'mon, don't let Dublin have all the fun.
+            </p>
+          </div>
         </div>
       ) : (
         <!-- Error State -->
