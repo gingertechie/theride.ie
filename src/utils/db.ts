@@ -250,6 +250,46 @@ export async function getTopCountiesByBikes(
 }
 
 /**
+ * Busiest sensor data (sensor with most bikes yesterday)
+ */
+export interface BusiestSensorData {
+  segment_id: number;
+  location_name: string | null;
+  county: string;
+  total_bikes: number;
+}
+
+/**
+ * Get the busiest sensor (by bike count) for yesterday
+ */
+export async function getBusiestSensor(
+  db: D1Database
+): Promise<BusiestSensorData | null> {
+  const yesterday = getYesterdayDateRange();
+
+  const result = await db
+    .prepare(`
+      SELECT
+        s.segment_id,
+        s.location_name,
+        s.county,
+        COALESCE(SUM(h.bike), 0) as total_bikes
+      FROM sensor_hourly_data h
+      INNER JOIN sensor_locations s ON h.segment_id = s.segment_id
+      WHERE h.hour_timestamp >= ?
+        AND h.hour_timestamp < ?
+        AND s.county IS NOT NULL
+      GROUP BY s.segment_id, s.location_name, s.county
+      ORDER BY total_bikes DESC, s.segment_id ASC
+      LIMIT 1
+    `)
+    .bind(yesterday.start, yesterday.end)
+    .first<BusiestSensorData>();
+
+  return result;
+}
+
+/**
  * Get detailed stats for a specific county (daily totals from hourly data)
  */
 export interface SensorWithDailyTotal {

@@ -1,0 +1,89 @@
+---
+/**
+ * Busiest Sensor Component
+ * Displays yesterday's sensor with the most bike traffic across Ireland
+ * Part of The Ride's Velvet & Neon design system
+ */
+
+interface Props {
+  locationName: string;    // Human-readable location or "Sensor {id}"
+  county: string;          // County name (e.g., "Dublin")
+  bikeCount: number;       // Total bikes recorded yesterday
+  segmentId: number;       // Telraam segment ID for linking
+}
+
+const { locationName, county, bikeCount, segmentId } = Astro.props;
+
+// County-specific context labels (Irish humor)
+function getOutputLabel(county: string): string {
+  const countyLower = county.toLowerCase();
+
+  if (countyLower === 'dublin') return "The capital's crown jewel";
+  if (countyLower === 'cork') return "Rebel county's hotspot";
+  if (countyLower === 'galway') return "City of the Tribes at its finest";
+  if (countyLower === 'limerick') return "Treaty city pedal paradise";
+  if (countyLower === 'clare') return "Banner county's beating heart";
+  if (countyLower === 'kildare') return "Thoroughbred county cycles strong";
+  if (countyLower === 'meath') return "Royal county rides";
+  if (countyLower === 'wexford') return "Sunny South-East shining bright";
+  if (countyLower === 'mayo') return "Wild West Atlantic way";
+  if (countyLower === 'wicklow') return "Garden of Ireland in bloom";
+
+  return `${county}'s cycling champion`;
+}
+
+const contextLabel = getOutputLabel(county);
+const formattedCount = bikeCount.toLocaleString();
+const telraamUrl = `https://telraam.net/en/location/${segmentId}`;
+---
+
+<section aria-label="Busiest cycling sensor" class="w-full max-w-xl mx-auto my-8 px-4">
+  <a
+    href={telraamUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="block bg-velvet-midnight rounded-xl neon-border-green p-6 transition-all duration-300 hover:scale-105 hover:neon-glow-green-strong focus:outline-none focus:ring-2 focus:ring-neon-green focus:ring-offset-2 focus:ring-offset-velvet-black"
+    aria-label={`View ${locationName} sensor details on Telraam`}
+  >
+    <!-- Header -->
+    <div class="flex items-center gap-2 mb-3">
+      <span class="text-2xl" aria-hidden="true">📍</span>
+      <h3 class="text-lg md:text-xl text-text-secondary font-medium">
+        The Hottest Spot
+      </h3>
+    </div>
+
+    <!-- Location name -->
+    <div class="mb-3">
+      <span class="text-2xl md:text-3xl font-bold text-neon-green text-glow-green">
+        {locationName}
+      </span>
+      <span class="text-text-secondary text-base md:text-lg ml-2">
+        in {county}
+      </span>
+    </div>
+
+    <!-- Bike count -->
+    <div class="mb-3">
+      <span class="text-3xl md:text-4xl font-bold text-neon-green text-glow-green">
+        {formattedCount}
+      </span>
+      <span class="text-text-secondary text-sm md:text-base ml-2">
+        cyclists yesterday
+      </span>
+    </div>
+
+    <!-- Green divider -->
+    <div class="h-px bg-gradient-to-r from-transparent via-neon-green to-transparent opacity-30 my-3"></div>
+
+    <!-- Context label -->
+    <p class="text-text-muted text-sm">
+      ({contextLabel})
+    </p>
+
+    <!-- Click hint -->
+    <div class="mt-3 text-xs text-text-muted opacity-75">
+      Click to view on Telraam →
+    </div>
+  </a>
+</section>

@@ -3,6 +3,10 @@ import MinimalLayout from "../layouts/MinimalLayout.astro";
 import CountyLeaderboard from "../components/sections/CountyLeaderboard.astro";
 import CountiesGrid from "../components/sections/CountiesGrid.astro";
 import BusiestHour from "../components/sections/BusiestHour.astro";
+import BusiestSensor from "../components/sections/BusiestSensor.astro";
+
+// Check for busiest sensor feature flag
+const showBusiestSensor = Astro.url.searchParams.get('showBusiestSensor') === 'true';
 
 // Fetch national stats from API
 const response = await fetch(`${Astro.url.origin}/api/stats/national.json`);
@@ -24,6 +28,14 @@ const allCounties = allCountiesResult.success ? allCountiesResult.data : [];
 const busiestHourResponse = await fetch(`${Astro.url.origin}/api/stats/busiest-hour.json`);
 const busiestHourResult = await busiestHourResponse.json();
 const busiestHour = busiestHourResult.success ? busiestHourResult.data : null;
+
+// Fetch busiest sensor data (only if flag is enabled)
+let busiestSensor = null;
+if (showBusiestSensor) {
+  const busiestSensorResponse = await fetch(`${Astro.url.origin}/api/stats/busiest-sensor.json`);
+  const busiestSensorResult = await busiestSensorResponse.json();
+  busiestSensor = busiestSensorResult.success ? busiestSensorResult.data : null;
+}
 ---
 
 <MinimalLayout
@@ -44,8 +56,8 @@ const busiestHour = busiestHourResult.success ? busiestHourResult.data : null;
       <!-- Opening Context -->
       <div class="max-w-3xl mx-auto mb-16">
         <p class="text-text-secondary text-lg text-center leading-relaxed">
-          Welcome to the data they don't want you to see—except they do, because it's bloody brilliant.
-          Telraam sensors all over Ireland are counting cyclists in real-time, proving that bikes aren't
+          Nobody uses bikes. Except - they do. And loads of them.
+          Sensors all over Ireland are counting cyclists in real-time, proving that bikes aren't
           just for Lycra-clad lunatics on Sunday mornings. These numbers are real, the craic is real,
           and the infrastructure is... well, they're working on that bit. But look at us go anyway.
         </p>
@@ -76,12 +88,29 @@ const busiestHour = busiestHourResult.success ? busiestHourResult.data : null;
           </p>
         </div>
 
-        <!-- Busiest Hour Widget -->
-        {busiestHour && (
-          <BusiestHour
-            hour={busiestHour.hour}
-            count={busiestHour.count}
-          />
+        <!-- Dashboard widgets section -->
+        {showBusiestSensor && busiestSensor ? (
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            {busiestHour && (
+              <BusiestHour
+                hour={busiestHour.hour}
+                count={busiestHour.count}
+              />
+            )}
+            <BusiestSensor
+              locationName={busiestSensor.location_name}
+              county={busiestSensor.county}
+              bikeCount={busiestSensor.bike_count}
+              segmentId={busiestSensor.segment_id}
+            />
+          </div>
+        ) : (
+          busiestHour && (
+            <BusiestHour
+              hour={busiestHour.hour}
+              count={busiestHour.count}
+            />
+          )
         )}
 
         <!-- The Rideyest County Section -->

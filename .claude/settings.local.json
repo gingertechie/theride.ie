@@ -12,7 +12,9 @@
       "Bash(npm install)",
       "Bash(wrangler deploy:*)",
       "Bash(npx wrangler deploy)",
-      "Bash(npx wrangler deploy:*)"
+      "Bash(npx wrangler deploy:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
