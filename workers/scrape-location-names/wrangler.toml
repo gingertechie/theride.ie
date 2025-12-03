@@ -1,0 +1,24 @@
+name = "scrape-location-names"
+main = "index.ts"
+compatibility_date = "2024-11-28"
+
+# Schedule: Run every Sunday at 2:00 AM (weekly maintenance window)
+# Cron format: minute hour day month day-of-week
+# In Cloudflare: 1 = Monday, 7 = Sunday (or use SUN)
+[triggers]
+crons = ["0 2 * * SUN"]
+
+# D1 Database binding (same database as main app)
+[[d1_databases]]
+binding = "DB"
+database_name = "theride-db"
+database_id = "86c35cca-68fd-4d93-8d4a-c7a3ab463b10"
+
+# Observability: Enable logging for monitoring and debugging
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true

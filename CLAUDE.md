@@ -172,3 +172,91 @@ The site is configured for Cloudflare deployment. The Astro config uses the Clou
 Database bindings are configured in `wrangler.toml`. Ensure database migrations are run on production before deploying.
 
 Note: The `site` field in `astro.config.mjs` still references the old Vercel URL and should be updated if needed.
+
+## Cloudflare Workers
+
+The project uses scheduled Cloudflare Workers for background tasks. Workers are located in the `workers/` directory, each in its own subdirectory with isolated configuration.
+
+### Worker Directory Structure
+
+```
+workers/
+├── update-sensor-data/         # Daily sensor data sync
+│   ├── index.ts                # Worker logic
+│   ├── wrangler.toml           # Worker-specific config
+│   ├── package.json            # Dependencies
+│   └── tsconfig.json           # TypeScript config
+└── scrape-location-names/      # Weekly location name scraper
+    ├── index.ts
+    ├── wrangler.toml
+    ├── package.json
+    └── tsconfig.json
+```
+
+### Deploying Workers
+
+**CRITICAL**: Each worker has its own `wrangler.toml` configuration. Because there's also a root `wrangler.toml` for the main site, you MUST use the `-c wrangler.toml` flag when deploying workers to avoid deploying the wrong project.
+
+```bash
+# CORRECT - Deploy a specific worker
+cd workers/scrape-location-names
+npm run deploy
+# OR manually:
+npx wrangler deploy -c wrangler.toml
+
+# WRONG - This will deploy the main site instead!
+cd workers/scrape-location-names
+npx wrangler deploy  # ❌ Missing -c flag
+```
+
+### Worker npm Scripts Pattern
+
+All workers should include these npm scripts in their `package.json`:
+
+```json
+{
+  "scripts": {
+    "dev": "wrangler dev -c wrangler.toml",
+    "deploy": "wrangler deploy -c wrangler.toml",
+    "tail": "wrangler tail <worker-name>"
+  }
+}
+```
+
+### Creating New Workers
+
+When creating a new worker:
+
+1. Create directory: `workers/<worker-name>/`
+2. Create `wrangler.toml` with unique `name` field
+3. Create `package.json` with scripts that use `-c wrangler.toml`
+4. Create `index.ts` with worker logic
+5. Create `tsconfig.json` (copy from existing worker)
+6. Deploy using: `npm run deploy`
+
+### Existing Workers
+
+- **update-sensor-data**: Runs daily at 23:59 UTC to fetch hourly traffic data from Telraam API
+- **scrape-location-names**: Runs weekly (Sunday 2:00 AM UTC) to scrape location names from Telraam pages
+
+### Worker Development
+
+```bash
+# Local development with test triggers
+cd workers/<worker-name>
+npm run dev
+
+# View production logs
+npm run tail
+
+# Trigger scheduled worker manually (via Cloudflare dashboard)
+# Workers & Pages > <worker-name> > Triggers > Cron Triggers > "Send test event"
+```
+
+### Common Pitfall
+
+**Problem**: Running `npx wrangler deploy` from a worker directory deploys the main site instead.
+
+**Root Cause**: Wrangler searches up the directory tree for `wrangler.toml` and finds the root config first.
+
+**Solution**: Always use `-c wrangler.toml` flag or use `npm run deploy` which includes the flag.

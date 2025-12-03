@@ -1,13 +1,13 @@
 {
-  "name": "update-sensor-data",
+  "name": "scrape-location-names",
   "version": "1.0.0",
-  "description": "Scheduled worker to update sensor data from Telraam API",
+  "description": "Scheduled worker to scrape location names from Telraam pages",
   "main": "index.ts",
   "scripts": {
     "build": "echo 'No build step needed - wrangler handles compilation'",
     "dev": "wrangler dev -c wrangler.toml",
     "deploy": "wrangler deploy -c wrangler.toml",
-    "tail": "wrangler tail update-sensor-data"
+    "tail": "wrangler tail scrape-location-names"
   },
   "dependencies": {},
   "devDependencies": {
