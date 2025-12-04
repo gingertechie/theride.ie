@@ -1,0 +1,144 @@
+---
+import MinimalLayout from "../layouts/MinimalLayout.astro";
+---
+
+<MinimalLayout
+  title="About the Ride"
+  description="Learn about The Ride — Ireland's cycling data platform powered by Telraam sensors. Real bikes, real data, updated daily."
+>
+  <!-- Hero Section -->
+  <section class="bg-velvet-black pt-24 pb-16 px-4 md:px-6">
+    <div class="container mx-auto max-w-6xl">
+      <h1 class="text-4xl md:text-7xl font-medium text-white mb-6 text-center">
+        About <span class="greenhead text-glow-green">The Ride</span>
+      </h1>
+      <p class="text-text-secondary text-xl md:text-2xl text-center mb-8">
+        Where the numbers come from and why they matter
+      </p>
+
+      <div class="neon-divider mb-12"></div>
+
+      <div class="max-w-4xl mx-auto">
+        <p class="text-text-secondary text-lg md:text-xl leading-relaxed text-center">
+          The Ride is a cycling data platform that shows you exactly how many bikes are actually rolling around Ireland. No surveys, no estimates, no lads with hi-viz vests and a guess. Just real numbers from real sensors watching real roads. Think of it as proof that despite the shite infrastructure and the government's best efforts to keep us all in cars, people all over Ireland are cycling anyway.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Purpose Section -->
+  <section class="bg-velvet-black py-16 px-4 md:px-6">
+    <div class="container mx-auto max-w-6xl">
+      <div class="neon-divider mb-12"></div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+        <!-- Column 1 -->
+        <div>
+          <h2 class="text-3xl md:text-4xl font-medium text-white mb-4">
+            Why <span class="yellowhead">This Exists</span>
+          </h2>
+          <p class="text-text-secondary text-lg leading-relaxed">
+            This site exists because the "nobody cycles here" narrative is tired, lazy, and demonstrably wrong. Thousands of bikes are on Irish roads every day—commuting to work, nipping to the shops, or just getting some air that doesn't smell like diesel.
+          </p>
+        </div>
+
+        <!-- Column 2 -->
+        <div>
+          <h2 class="text-3xl md:text-4xl font-medium text-white mb-4">
+            What <span class="greenhead text-glow-green">It Does</span>
+          </h2>
+          <p class="text-text-secondary text-lg leading-relaxed">
+            The data proves it. When infrastructure advocates need evidence, when journalists need numbers, or when some gobshite at a planning meeting claims there's "no demand," this is where you send them. The Ride makes the invisible visible.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Data Source Section -->
+  <section class="bg-velvet-black py-24 px-4 md:px-6">
+    <div class="container mx-auto max-w-6xl">
+      <div class="neon-divider mb-12"></div>
+
+      <h2 class="text-3xl md:text-5xl font-medium text-white mb-4 text-center">
+        Where the <span class="greenhead text-glow-green">Numbers</span> Come From
+      </h2>
+      <p class="text-text-secondary text-xl text-center mb-16 max-w-3xl mx-auto">
+        The sensors behind The Ride are called Telraam devices—window-mounted traffic counters that regular people install in their homes (it's not weird tho).
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Card 1 -->
+        <div class="bg-velvet-midnight rounded-xl neon-border-green p-8 transition-all duration-300 hover:neon-border-green-strong">
+          <div class="text-6xl font-bold text-neon-green text-glow-green mb-4">01</div>
+          <h3 class="text-2xl font-medium text-white mb-3">Community Sensors</h3>
+          <p class="text-text-secondary leading-relaxed">
+            They watch the road, count bikes (and cars, and pedestrians, and the occasional tractor), and upload the data to a public database.
+          </p>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bg-velvet-midnight rounded-xl border-2 border-neon-yellow border-opacity-30 p-8 transition-all duration-300 hover:border-opacity-60">
+          <div class="text-6xl font-bold text-neon-yellow mb-4">02</div>
+          <h3 class="text-2xl font-medium text-white mb-3">AI-Powered Counting</h3>
+          <p class="text-text-secondary leading-relaxed">
+            No clipboards, no surveys, no margin for human error. The tech uses computer vision to tell a bike from a bus, and it works in all weather.
+          </p>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="bg-velvet-midnight rounded-xl border-2 border-neon-cyan border-opacity-30 p-8 transition-all duration-300 hover:border-opacity-60">
+          <div class="text-6xl font-bold text-neon-cyan mb-4">03</div>
+          <h3 class="text-2xl font-medium text-white mb-3">Public Data Feed</h3>
+          <p class="text-text-secondary leading-relaxed">
+            Hundreds of sensors scattered across the country, quietly logging every trip. We just grab the data and make it look class.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Update Frequency Section -->
+  <section class="bg-velvet-black py-16 px-4 md:px-6">
+    <div class="container mx-auto max-w-4xl">
+      <div class="neon-divider mb-12"></div>
+
+      <div class="bg-velvet-midnight rounded-xl neon-border-green neon-pulse p-12 text-center">
+        <h2 class="text-3xl md:text-4xl font-medium text-white mb-4">
+          Updated <span class="greenhead text-glow-green">Daily</span>
+        </h2>
+        <p class="text-text-secondary text-lg mb-6">
+          Fresh data pulled from Telraam sensors every day
+        </p>
+        <div class="text-6xl md:text-8xl font-bold text-neon-green text-glow-green mb-2">
+          23:59
+        </div>
+        <p class="text-text-muted text-sm">
+          UTC (Midnight Irish Time)
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="bg-velvet-black py-24 px-4 md:px-6">
+    <div class="container mx-auto max-w-4xl">
+      <div class="neon-divider mb-12"></div>
+
+      <div class="text-center">
+        <p class="text-text-secondary text-xl md:text-2xl leading-relaxed mb-12">
+          So that's the story. Real sensors, real data, real cyclists who deserve better than painted gutters and empty promises. Head to the dashboard and see what's rolling past in your county—you might be surprised how many of us are out there.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <a href="/" class="btn-primary text-lg px-8 py-4">
+            View National Dashboard
+          </a>
+          <a href="/#counties" class="btn-secondary text-lg px-8 py-4">
+            Explore Counties
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</MinimalLayout>

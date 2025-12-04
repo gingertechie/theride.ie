@@ -192,10 +192,23 @@ async function insertHourlyData(
       // Telraam API may return date as ISO timestamp or date string, so parse it carefully
       let hourTimestamp: string;
 
+      // Validate report has required date field
+      if (!report.date) {
+        console.warn(`Skipping record with missing date for segment ${segmentId}`);
+        return null;
+      }
+
       if (report.date.includes('T')) {
         // Full ISO timestamp like "2025-12-01T14:00:00.000Z"
         // Extract just the date part and hour
         const parsedDate = new Date(report.date);
+
+        // Validate the date is valid
+        if (isNaN(parsedDate.getTime())) {
+          console.warn(`Skipping record with invalid date "${report.date}" for segment ${segmentId}`);
+          return null;
+        }
+
         const year = parsedDate.getUTCFullYear();
         const month = String(parsedDate.getUTCMonth() + 1).padStart(2, '0');
         const day = String(parsedDate.getUTCDate()).padStart(2, '0');
@@ -204,6 +217,18 @@ async function insertHourlyData(
         hourTimestamp = `${dateStr} ${hour}:00:00Z`;
       } else {
         // Simple date string like "2025-12-01" with separate hour field
+        // Validate the date format
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(report.date)) {
+          console.warn(`Skipping record with malformed date "${report.date}" for segment ${segmentId}`);
+          return null;
+        }
+
+        // Validate hour is a valid number
+        if (typeof report.hour !== 'number' || report.hour < 0 || report.hour > 23) {
+          console.warn(`Skipping record with invalid hour "${report.hour}" for segment ${segmentId}`);
+          return null;
+        }
+
         hourTimestamp = `${report.date} ${String(report.hour).padStart(2, '0')}:00:00Z`;
       }
 
@@ -235,11 +260,17 @@ async function insertHourlyData(
         report.v85 ?? null,
         report.uptime
       );
-    });
+    }).filter(stmt => stmt !== null); // Filter out invalid records
+
+    // Skip if all records in batch were invalid
+    if (statements.length === 0) {
+      console.warn(`Skipping batch at index ${i} - all records were invalid`);
+      continue;
+    }
 
     try {
       await db.batch(statements);
-      insertedCount += batch.length;
+      insertedCount += statements.length;
     } catch (error) {
       console.error(`Error inserting batch starting at index ${i}:`, error);
       throw error;
