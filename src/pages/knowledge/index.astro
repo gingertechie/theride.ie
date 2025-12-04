@@ -1,0 +1,73 @@
+---
+import MinimalLayout from "../../layouts/MinimalLayout.astro";
+import KnowledgeCard from "../../components/knowledge/KnowledgeCard.astro";
+import { getCollection } from "astro:content";
+
+// Fetch all knowledge articles
+const allKnowledge = await getCollection('knowledge');
+
+// Sort by difficulty (Beginner → Intermediate → Advanced)
+const difficultyOrder = { 'Beginner': 1, 'Intermediate': 2, 'Advanced': 3 };
+const sortedKnowledge = allKnowledge.sort((a, b) => {
+  return difficultyOrder[a.data.difficulty] - difficultyOrder[b.data.difficulty];
+});
+---
+
+<MinimalLayout
+  title="Knowledge Base | The Ride"
+  description="Everything you need to navigate Ireland's cycling advocacy world — from talking to councillors to understanding the RSA."
+>
+  <!-- Hero Section -->
+  <section class="bg-velvet-black pt-24 pb-16 px-4 md:px-6">
+    <div class="container mx-auto max-w-6xl">
+      <!-- Page Header -->
+      <h1 class="text-4xl md:text-7xl font-medium text-white mb-6 text-center">
+        Knowledge <span class="yellowhead">Base</span>
+      </h1>
+      <p class="text-text-secondary text-xl md:text-2xl text-center mb-8">
+        Everything you need to navigate Ireland's cycling advocacy world
+      </p>
+
+      <div class="neon-divider mb-12"></div>
+
+      <!-- Opening Context -->
+      <div class="max-w-4xl mx-auto mb-16">
+        <p class="text-text-secondary text-lg md:text-xl leading-relaxed text-center">
+          Cycling advocacy in Ireland can feel like shouting into the void—unless you know how the system works.
+          This knowledge base breaks down the key players, processes, and strategies you need to actually get
+          things done. From talking to councillors without losing your mind to understanding what the RSA actually
+          does, consider this your field guide to making noise that matters.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Articles Grid Section -->
+  <section class="bg-velvet-black py-16 px-4 md:px-6">
+    <div class="container mx-auto max-w-6xl">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {sortedKnowledge.map((article) => (
+          <KnowledgeCard
+            title={article.data.title}
+            slug={article.slug}
+            summary={article.data.summary}
+            difficulty={article.data.difficulty}
+            readTime={article.data.readTime}
+          />
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Back to Home Link -->
+  <section class="bg-velvet-black pb-24 px-4 md:px-6">
+    <div class="container mx-auto max-w-6xl">
+      <div class="neon-divider mb-12"></div>
+      <div class="text-center">
+        <a href="/" class="text-neon-yellow hover:text-glow-yellow transition-all duration-300 text-lg">
+          ← Back to National Dashboard
+        </a>
+      </div>
+    </div>
+  </section>
+</MinimalLayout>

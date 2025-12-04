@@ -14,7 +14,8 @@
       "Bash(npx wrangler deploy)",
       "Bash(npx wrangler deploy:*)",
       "Bash(curl:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "mcp__ide__executeCode"
     ],
     "deny": [],
     "ask": []
