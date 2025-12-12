@@ -7,6 +7,22 @@ import { getSensorById, getSensorStats, upsertSensor, deleteSensor } from '@/uti
  */
 export const GET: APIRoute = async ({ locals, params }) => {
   try {
+    // Check if runtime is available
+    if (!locals.runtime?.env?.DB) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'D1 database binding not available. Make sure you are running with wrangler dev or have set up local bindings.',
+        }),
+        {
+          status: 503,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
     const segmentId = parseInt(params.id || '');
 
     if (isNaN(segmentId)) {
@@ -76,6 +92,22 @@ export const GET: APIRoute = async ({ locals, params }) => {
  */
 export const PUT: APIRoute = async ({ locals, params, request }) => {
   try {
+    // Check if runtime is available
+    if (!locals.runtime?.env?.DB) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'D1 database binding not available. Make sure you are running with wrangler dev or have set up local bindings.',
+        }),
+        {
+          status: 503,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
     const segmentId = parseInt(params.id || '');
 
     if (isNaN(segmentId)) {
@@ -135,6 +167,22 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
  */
 export const DELETE: APIRoute = async ({ locals, params }) => {
   try {
+    // Check if runtime is available
+    if (!locals.runtime?.env?.DB) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'D1 database binding not available. Make sure you are running with wrangler dev or have set up local bindings.',
+        }),
+        {
+          status: 503,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
     const segmentId = parseInt(params.id || '');
 
     if (isNaN(segmentId)) {

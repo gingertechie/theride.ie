@@ -82,9 +82,13 @@ export default {
  * Returns the location name or null if not found
  */
 async function scrapeLocationName(segmentId: number): Promise<string | null> {
-  const url = `https://telraam.net/en/location/${segmentId}`;
-
   try {
+    if (!segmentId || typeof segmentId !== 'number') {
+      throw new Error('Invalid segment ID provided');
+    }
+
+    const url = `https://telraam.net/en/location/${segmentId}`;
+
     const response = await fetch(url, {
       signal: AbortSignal.timeout(30000), // 30 second timeout
     });
@@ -114,8 +118,7 @@ async function scrapeLocationName(segmentId: number): Promise<string | null> {
     return locationName || null;
 
   } catch (error) {
-    // Re-throw error to be caught by caller
-    throw error;
+    throw new Error(`Failed to scrape location name for segment ${segmentId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -140,10 +143,22 @@ async function updateLocationName(
   segmentId: number,
   locationName: string | null
 ): Promise<void> {
-  await db
-    .prepare("UPDATE sensor_locations SET location_name = ?, updated_at = datetime('now') WHERE segment_id = ?")
-    .bind(locationName, segmentId)
-    .run();
+  try {
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
+
+    if (!segmentId || typeof segmentId !== 'number') {
+      throw new Error('Invalid segment ID provided');
+    }
+
+    await db
+      .prepare("UPDATE sensor_locations SET location_name = ?, updated_at = datetime('now') WHERE segment_id = ?")
+      .bind(locationName, segmentId)
+      .run();
+  } catch (error) {
+    throw new Error(`Failed to update location name for segment ${segmentId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**

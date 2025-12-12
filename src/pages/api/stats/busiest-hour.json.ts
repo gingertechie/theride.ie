@@ -66,12 +66,13 @@ export const GET: APIRoute = async ({ locals }) => {
           CAST(SUBSTR(hour_timestamp, 12, 2) AS INTEGER) AS hour,
           SUM(bike) AS total_bikes
         FROM sensor_hourly_data
-        WHERE hour_timestamp >= "${yesterday.start}"
-          AND hour_timestamp < "${yesterday.end}"
+        WHERE hour_timestamp >= ?
+          AND hour_timestamp < ?
         GROUP BY SUBSTR(hour_timestamp, 12, 2)
         ORDER BY total_bikes DESC
         LIMIT 1
       `)
+      .bind(yesterday.start, yesterday.end)
       .first<BusiestHourResult>();
 
     if (!result || result.total_bikes === 0) {

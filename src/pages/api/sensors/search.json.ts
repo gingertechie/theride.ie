@@ -12,6 +12,22 @@ import { getSensorsInBounds } from '@/utils/db';
  */
 export const POST: APIRoute = async ({ locals, request }) => {
   try {
+    // Check if runtime is available
+    if (!locals.runtime?.env?.DB) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'D1 database binding not available. Make sure you are running with wrangler dev or have set up local bindings.',
+        }),
+        {
+          status: 503,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
     const db = locals.runtime.env.DB as D1Database;
     const params = await request.json();
 

@@ -33,11 +33,19 @@ function getYesterdayDateRange(): { start: string; end: string } {
  * Get all sensor locations
  */
 export async function getAllSensors(db: D1Database): Promise<SensorLocation[]> {
-  const { results } = await db
-    .prepare('SELECT * FROM sensor_locations ORDER BY segment_id')
-    .all<SensorLocation>();
+  try {
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
 
-  return results || [];
+    const { results } = await db
+      .prepare('SELECT * FROM sensor_locations ORDER BY segment_id')
+      .all<SensorLocation>();
+
+    return results || [];
+  } catch (error) {
+    throw new Error(`Failed to retrieve sensors: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
@@ -47,10 +55,22 @@ export async function getSensorById(
   db: D1Database,
   segmentId: number
 ): Promise<SensorLocation | null> {
-  return await db
-    .prepare('SELECT * FROM sensor_locations WHERE segment_id = ?')
-    .bind(segmentId)
-    .first<SensorLocation>();
+  try {
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
+
+    if (!segmentId || typeof segmentId !== 'number' || segmentId < 0) {
+      throw new Error('Invalid segment ID provided');
+    }
+
+    return await db
+      .prepare('SELECT * FROM sensor_locations WHERE segment_id = ?')
+      .bind(segmentId)
+      .first<SensorLocation>();
+  } catch (error) {
+    throw new Error(`Failed to retrieve sensor ${segmentId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
@@ -63,17 +83,35 @@ export async function getSensorsInBounds(
   minLon: number,
   maxLon: number
 ): Promise<SensorLocation[]> {
-  const { results } = await db
-    .prepare(`
-      SELECT * FROM sensor_locations
-      WHERE latitude BETWEEN ? AND ?
-      AND longitude BETWEEN ? AND ?
-      ORDER BY segment_id
-    `)
-    .bind(minLat, maxLat, minLon, maxLon)
-    .all<SensorLocation>();
+  try {
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
 
-  return results || [];
+    // Validate coordinates
+    if (typeof minLat !== 'number' || typeof maxLat !== 'number' ||
+        typeof minLon !== 'number' || typeof maxLon !== 'number') {
+      throw new Error('Invalid coordinate values provided');
+    }
+
+    if (minLat > maxLat || minLon > maxLon) {
+      throw new Error('Invalid bounds: minimum values cannot exceed maximum values');
+    }
+
+    const { results } = await db
+      .prepare(`
+        SELECT * FROM sensor_locations
+        WHERE latitude BETWEEN ? AND ?
+        AND longitude BETWEEN ? AND ?
+        ORDER BY segment_id
+      `)
+      .bind(minLat, maxLat, minLon, maxLon)
+      .all<SensorLocation>();
+
+    return results || [];
+  } catch (error) {
+    throw new Error(`Failed to retrieve sensors in bounds: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
@@ -83,38 +121,54 @@ export async function upsertSensor(
   db: D1Database,
   sensor: Omit<SensorLocation, 'created_at' | 'updated_at'>
 ): Promise<D1Result> {
-  return await db
-    .prepare(`
-      INSERT INTO sensor_locations (
-        segment_id, last_data_package, timezone, latitude, longitude,
-        country, county, city_town, locality, eircode
+  try {
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
+
+    if (!sensor || typeof sensor.segment_id !== 'number' || sensor.segment_id < 0) {
+      throw new Error('Invalid sensor data: segment_id is required and must be a positive number');
+    }
+
+    if (typeof sensor.latitude !== 'number' || typeof sensor.longitude !== 'number') {
+      throw new Error('Invalid sensor data: latitude and longitude are required');
+    }
+
+    return await db
+      .prepare(`
+        INSERT INTO sensor_locations (
+          segment_id, last_data_package, timezone, latitude, longitude,
+          country, county, city_town, locality, eircode
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(segment_id) DO UPDATE SET
+          last_data_package = excluded.last_data_package,
+          timezone = excluded.timezone,
+          latitude = excluded.latitude,
+          longitude = excluded.longitude,
+          country = excluded.country,
+          county = excluded.county,
+          city_town = excluded.city_town,
+          locality = excluded.locality,
+          eircode = excluded.eircode,
+          updated_at = datetime('now')
+      `)
+      .bind(
+        sensor.segment_id,
+        sensor.last_data_package,
+        sensor.timezone,
+        sensor.latitude,
+        sensor.longitude,
+        sensor.country ?? null,
+        sensor.county ?? null,
+        sensor.city_town ?? null,
+        sensor.locality ?? null,
+        sensor.eircode ?? null
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(segment_id) DO UPDATE SET
-        last_data_package = excluded.last_data_package,
-        timezone = excluded.timezone,
-        latitude = excluded.latitude,
-        longitude = excluded.longitude,
-        country = excluded.country,
-        county = excluded.county,
-        city_town = excluded.city_town,
-        locality = excluded.locality,
-        eircode = excluded.eircode,
-        updated_at = datetime('now')
-    `)
-    .bind(
-      sensor.segment_id,
-      sensor.last_data_package,
-      sensor.timezone,
-      sensor.latitude,
-      sensor.longitude,
-      sensor.country ?? null,
-      sensor.county ?? null,
-      sensor.city_town ?? null,
-      sensor.locality ?? null,
-      sensor.eircode ?? null
-    )
-    .run();
+      .run();
+  } catch (error) {
+    throw new Error(`Failed to upsert sensor ${sensor?.segment_id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
@@ -131,25 +185,37 @@ export async function getSensorStats(
   db: D1Database,
   segmentId: number
 ): Promise<TrafficStats | null> {
-  // Get yesterday's date range (last complete day)
-  const yesterday = getYesterdayDateRange();
+  try {
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
 
-  const result = await db
-    .prepare(`
-      SELECT
-        COALESCE(SUM(heavy), 0) + COALESCE(SUM(car), 0) + COALESCE(SUM(bike), 0) as total_vehicles,
-        COALESCE(SUM(pedestrian), 0) as total_pedestrians,
-        COALESCE(AVG(v85), 0) as avg_speed,
-        COALESCE(AVG(uptime), 0) as avg_uptime
-      FROM sensor_hourly_data
-      WHERE segment_id = ?
-        AND hour_timestamp >= ?
-        AND hour_timestamp < ?
-    `)
-    .bind(segmentId, yesterday.start, yesterday.end)
-    .first<TrafficStats>();
+    if (!segmentId || typeof segmentId !== 'number' || segmentId < 0) {
+      throw new Error('Invalid segment ID provided');
+    }
 
-  return result;
+    // Get yesterday's date range (last complete day)
+    const yesterday = getYesterdayDateRange();
+
+    const result = await db
+      .prepare(`
+        SELECT
+          COALESCE(SUM(heavy), 0) + COALESCE(SUM(car), 0) + COALESCE(SUM(bike), 0) as total_vehicles,
+          COALESCE(SUM(pedestrian), 0) as total_pedestrians,
+          COALESCE(AVG(v85), 0) as avg_speed,
+          COALESCE(AVG(uptime), 0) as avg_uptime
+        FROM sensor_hourly_data
+        WHERE segment_id = ?
+          AND hour_timestamp >= ?
+          AND hour_timestamp < ?
+      `)
+      .bind(segmentId, yesterday.start, yesterday.end)
+      .first<TrafficStats>();
+
+    return result;
+  } catch (error) {
+    throw new Error(`Failed to retrieve stats for sensor ${segmentId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
@@ -159,10 +225,22 @@ export async function deleteSensor(
   db: D1Database,
   segmentId: number
 ): Promise<D1Result> {
-  return await db
-    .prepare('DELETE FROM sensor_locations WHERE segment_id = ?')
-    .bind(segmentId)
-    .run();
+  try {
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
+
+    if (!segmentId || typeof segmentId !== 'number' || segmentId < 0) {
+      throw new Error('Invalid segment ID provided');
+    }
+
+    return await db
+      .prepare('DELETE FROM sensor_locations WHERE segment_id = ?')
+      .bind(segmentId)
+      .run();
+  } catch (error) {
+    throw new Error(`Failed to delete sensor ${segmentId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
@@ -179,35 +257,43 @@ export interface NationalStats {
 }
 
 export async function getNationalStats(db: D1Database): Promise<NationalStats | null> {
-  // Get yesterday's date range (last complete day)
-  const yesterday = getYesterdayDateRange();
+  try {
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
 
-  const result = await db
-    .prepare(`
-      SELECT
-        COALESCE(SUM(h.bike), 0) as total_bikes,
-        COALESCE(SUM(h.car), 0) as total_cars,
-        COALESCE(SUM(h.pedestrian), 0) as total_pedestrians,
-        COALESCE(SUM(h.heavy), 0) as total_heavy,
-        COUNT(DISTINCT h.segment_id) as sensor_count,
-        MAX(h.hour_timestamp) as last_updated
-      FROM sensor_hourly_data h
-      INNER JOIN sensor_locations s ON h.segment_id = s.segment_id
-      WHERE s.county IS NOT NULL
-        AND h.hour_timestamp >= ?
-        AND h.hour_timestamp < ?
-    `)
-    .bind(yesterday.start, yesterday.end)
-    .first<Omit<NationalStats, 'date_range'>>();
+    // Get yesterday's date range (last complete day)
+    const yesterday = getYesterdayDateRange();
 
-  if (!result) {
-    return null;
+    const result = await db
+      .prepare(`
+        SELECT
+          COALESCE(SUM(h.bike), 0) as total_bikes,
+          COALESCE(SUM(h.car), 0) as total_cars,
+          COALESCE(SUM(h.pedestrian), 0) as total_pedestrians,
+          COALESCE(SUM(h.heavy), 0) as total_heavy,
+          COUNT(DISTINCT h.segment_id) as sensor_count,
+          MAX(h.hour_timestamp) as last_updated
+        FROM sensor_hourly_data h
+        INNER JOIN sensor_locations s ON h.segment_id = s.segment_id
+        WHERE s.county IS NOT NULL
+          AND h.hour_timestamp >= ?
+          AND h.hour_timestamp < ?
+      `)
+      .bind(yesterday.start, yesterday.end)
+      .first<Omit<NationalStats, 'date_range'>>();
+
+    if (!result) {
+      return null;
+    }
+
+    return {
+      ...result,
+      date_range: yesterday.start.split(' ')[0], // Just the date part
+    };
+  } catch (error) {
+    throw new Error(`Failed to retrieve national statistics: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-
-  return {
-    ...result,
-    date_range: yesterday.start.split(' ')[0], // Just the date part
-  };
 }
 
 /**
@@ -224,29 +310,41 @@ export async function getTopCountiesByBikes(
   db: D1Database,
   limit: number = 3
 ): Promise<CountyStats[]> {
-  // Get yesterday's date range (last complete day)
-  const yesterday = getYesterdayDateRange();
+  try {
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
 
-  const { results } = await db
-    .prepare(`
-      SELECT
-        s.county,
-        COALESCE(SUM(h.bike), 0) as total_bikes,
-        COUNT(DISTINCT h.segment_id) as sensor_count,
-        COALESCE(SUM(h.bike) * 1.0 / COUNT(DISTINCT h.segment_id), 0) as avg_bikes_per_sensor
-      FROM sensor_hourly_data h
-      INNER JOIN sensor_locations s ON h.segment_id = s.segment_id
-      WHERE s.county IS NOT NULL
-        AND h.hour_timestamp >= ?
-        AND h.hour_timestamp < ?
-      GROUP BY s.county
-      ORDER BY total_bikes DESC
-      LIMIT ?
-    `)
-    .bind(yesterday.start, yesterday.end, limit)
-    .all<CountyStats>();
+    if (typeof limit !== 'number' || limit < 1 || limit > 100) {
+      throw new Error('Invalid limit: must be a number between 1 and 100');
+    }
 
-  return results || [];
+    // Get yesterday's date range (last complete day)
+    const yesterday = getYesterdayDateRange();
+
+    const { results } = await db
+      .prepare(`
+        SELECT
+          s.county,
+          COALESCE(SUM(h.bike), 0) as total_bikes,
+          COUNT(DISTINCT h.segment_id) as sensor_count,
+          COALESCE(SUM(h.bike) * 1.0 / COUNT(DISTINCT h.segment_id), 0) as avg_bikes_per_sensor
+        FROM sensor_hourly_data h
+        INNER JOIN sensor_locations s ON h.segment_id = s.segment_id
+        WHERE s.county IS NOT NULL
+          AND h.hour_timestamp >= ?
+          AND h.hour_timestamp < ?
+        GROUP BY s.county
+        ORDER BY total_bikes DESC
+        LIMIT ?
+      `)
+      .bind(yesterday.start, yesterday.end, limit)
+      .all<CountyStats>();
+
+    return results || [];
+  } catch (error) {
+    throw new Error(`Failed to retrieve top counties: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
@@ -265,28 +363,36 @@ export interface BusiestSensorData {
 export async function getBusiestSensor(
   db: D1Database
 ): Promise<BusiestSensorData | null> {
-  const yesterday = getYesterdayDateRange();
+  try {
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
 
-  const result = await db
-    .prepare(`
-      SELECT
-        s.segment_id,
-        s.location_name,
-        s.county,
-        COALESCE(SUM(h.bike), 0) as total_bikes
-      FROM sensor_hourly_data h
-      INNER JOIN sensor_locations s ON h.segment_id = s.segment_id
-      WHERE h.hour_timestamp >= ?
-        AND h.hour_timestamp < ?
-        AND s.county IS NOT NULL
-      GROUP BY s.segment_id, s.location_name, s.county
-      ORDER BY total_bikes DESC, s.segment_id ASC
-      LIMIT 1
-    `)
-    .bind(yesterday.start, yesterday.end)
-    .first<BusiestSensorData>();
+    const yesterday = getYesterdayDateRange();
 
-  return result;
+    const result = await db
+      .prepare(`
+        SELECT
+          s.segment_id,
+          s.location_name,
+          s.county,
+          COALESCE(SUM(h.bike), 0) as total_bikes
+        FROM sensor_hourly_data h
+        INNER JOIN sensor_locations s ON h.segment_id = s.segment_id
+        WHERE h.hour_timestamp >= ?
+          AND h.hour_timestamp < ?
+          AND s.county IS NOT NULL
+        GROUP BY s.segment_id, s.location_name, s.county
+        ORDER BY total_bikes DESC, s.segment_id ASC
+        LIMIT 1
+      `)
+      .bind(yesterday.start, yesterday.end)
+      .first<BusiestSensorData>();
+
+    return result;
+  } catch (error) {
+    throw new Error(`Failed to retrieve busiest sensor: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
@@ -318,59 +424,71 @@ export async function getCountyDetails(
   db: D1Database,
   county: string
 ): Promise<CountyDetails | null> {
-  // Get yesterday's date range (last complete day)
-  const yesterday = getYesterdayDateRange();
+  try {
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
 
-  // Get county statistics
-  const stats = await db
-    .prepare(`
-      SELECT
-        s.county,
-        COALESCE(SUM(h.bike), 0) as total_bikes,
-        COUNT(DISTINCT h.segment_id) as sensor_count,
-        COALESCE(SUM(h.bike) * 1.0 / COUNT(DISTINCT h.segment_id), 0) as avg_bikes_per_sensor
-      FROM sensor_hourly_data h
-      INNER JOIN sensor_locations s ON h.segment_id = s.segment_id
-      WHERE s.county = ?
-        AND h.hour_timestamp >= ?
-        AND h.hour_timestamp < ?
-      GROUP BY s.county
-    `)
-    .bind(county, yesterday.start, yesterday.end)
-    .first<CountyStats>();
+    if (!county || typeof county !== 'string' || county.trim().length === 0) {
+      throw new Error('Invalid county: must be a non-empty string');
+    }
 
-  if (!stats) {
-    return null;
+    // Get yesterday's date range (last complete day)
+    const yesterday = getYesterdayDateRange();
+
+    // Get county statistics
+    const stats = await db
+      .prepare(`
+        SELECT
+          s.county,
+          COALESCE(SUM(h.bike), 0) as total_bikes,
+          COUNT(DISTINCT h.segment_id) as sensor_count,
+          COALESCE(SUM(h.bike) * 1.0 / COUNT(DISTINCT h.segment_id), 0) as avg_bikes_per_sensor
+        FROM sensor_hourly_data h
+        INNER JOIN sensor_locations s ON h.segment_id = s.segment_id
+        WHERE s.county = ?
+          AND h.hour_timestamp >= ?
+          AND h.hour_timestamp < ?
+        GROUP BY s.county
+      `)
+      .bind(county, yesterday.start, yesterday.end)
+      .first<CountyStats>();
+
+    if (!stats) {
+      return null;
+    }
+
+    // Get all sensors for this county with their daily totals
+    const { results: sensors } = await db
+      .prepare(`
+        SELECT
+          s.segment_id,
+          s.latitude,
+          s.longitude,
+          s.locality,
+          s.city_town,
+          s.county,
+          s.location_name,
+          COALESCE(SUM(h.bike), 0) as bike,
+          COALESCE(SUM(h.car), 0) as car,
+          COALESCE(SUM(h.pedestrian), 0) as pedestrian,
+          COALESCE(SUM(h.heavy), 0) as heavy
+        FROM sensor_locations s
+        LEFT JOIN sensor_hourly_data h ON s.segment_id = h.segment_id
+          AND h.hour_timestamp >= ?
+          AND h.hour_timestamp < ?
+        WHERE s.county = ?
+        GROUP BY s.segment_id
+        ORDER BY bike DESC, s.segment_id
+      `)
+      .bind(yesterday.start, yesterday.end, county)
+      .all<SensorWithDailyTotal>();
+
+    return {
+      ...stats,
+      sensors: sensors || [],
+    };
+  } catch (error) {
+    throw new Error(`Failed to retrieve details for county ${county}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-
-  // Get all sensors for this county with their daily totals
-  const { results: sensors } = await db
-    .prepare(`
-      SELECT
-        s.segment_id,
-        s.latitude,
-        s.longitude,
-        s.locality,
-        s.city_town,
-        s.county,
-        s.location_name,
-        COALESCE(SUM(h.bike), 0) as bike,
-        COALESCE(SUM(h.car), 0) as car,
-        COALESCE(SUM(h.pedestrian), 0) as pedestrian,
-        COALESCE(SUM(h.heavy), 0) as heavy
-      FROM sensor_locations s
-      LEFT JOIN sensor_hourly_data h ON s.segment_id = h.segment_id
-        AND h.hour_timestamp >= ?
-        AND h.hour_timestamp < ?
-      WHERE s.county = ?
-      GROUP BY s.segment_id
-      ORDER BY bike DESC, s.segment_id
-    `)
-    .bind(yesterday.start, yesterday.end, county)
-    .all<SensorWithDailyTotal>();
-
-  return {
-    ...stats,
-    sensors: sensors || [],
-  };
 }

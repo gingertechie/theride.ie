@@ -141,33 +141,44 @@ async function fetchHourlyData(
   startTime: Date,
   endTime: Date
 ): Promise<TelraamHourlyReport[]> {
+  try {
+    if (!apiKey) {
+      throw new Error('Telraam API key is not configured');
+    }
 
-  const body = {
-    level: 'segments',
-    format: 'per-hour',
-    id: segmentId,
-    time_start: formatTelraamDateTime(startTime),
-    time_end: formatTelraamDateTime(endTime),
-  };
+    if (!segmentId) {
+      throw new Error('Segment ID is required');
+    }
 
-  console.log(`Fetching data for segment ${segmentId} from ${body.time_start} to ${body.time_end}`);
+    const body = {
+      level: 'segments',
+      format: 'per-hour',
+      id: segmentId,
+      time_start: formatTelraamDateTime(startTime),
+      time_end: formatTelraamDateTime(endTime),
+    };
 
-  const response = await fetch('https://telraam-api.net/v1/reports/traffic', {
-    method: 'POST',
-    headers: {
-      'X-Api-Key': apiKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+    console.log(`Fetching data for segment ${segmentId} from ${body.time_start} to ${body.time_end}`);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Telraam API error for segment ${segmentId}: ${response.status} ${errorText}`);
+    const response = await fetch('https://telraam-api.net/v1/reports/traffic', {
+      method: 'POST',
+      headers: {
+        'X-Api-Key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Telraam API returned ${response.status}: ${errorText}`);
+    }
+
+    const data: TelraamTrafficResponse = await response.json();
+    return data.report || [];
+  } catch (error) {
+    throw new Error(`Failed to fetch hourly data for segment ${segmentId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-
-  const data: TelraamTrafficResponse = await response.json();
-  return data.report || [];
 }
 
 /**
@@ -178,16 +189,20 @@ async function insertHourlyData(
   segmentId: number,
   hourlyData: TelraamHourlyReport[]
 ): Promise<number> {
+  try {
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
 
-  if (hourlyData.length === 0) return 0;
+    if (hourlyData.length === 0) return 0;
 
-  const BATCH_SIZE = 50;
-  let insertedCount = 0;
+    const BATCH_SIZE = 50;
+    let insertedCount = 0;
 
-  for (let i = 0; i < hourlyData.length; i += BATCH_SIZE) {
-    const batch = hourlyData.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < hourlyData.length; i += BATCH_SIZE) {
+      const batch = hourlyData.slice(i, i + BATCH_SIZE);
 
-    const statements = batch.map(report => {
+      const statements = batch.map(report => {
       // Convert date + hour to ISO8601 timestamp
       // Telraam API may return date as ISO timestamp or date string, so parse it carefully
       let hourTimestamp: string;
@@ -268,34 +283,49 @@ async function insertHourlyData(
       continue;
     }
 
-    try {
-      await db.batch(statements);
-      insertedCount += statements.length;
-    } catch (error) {
-      console.error(`Error inserting batch starting at index ${i}:`, error);
-      throw error;
+      try {
+        await db.batch(statements);
+        insertedCount += statements.length;
+      } catch (error) {
+        const errorMsg = `Failed to insert batch starting at index ${i} for segment ${segmentId}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        console.error(errorMsg);
+        throw new Error(errorMsg);
+      }
     }
-  }
 
-  return insertedCount;
+    return insertedCount;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('Failed to insert batch')) {
+      throw error; // Re-throw batch-specific errors
+    }
+    throw new Error(`Failed to insert hourly data for segment ${segmentId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
  * Clean up hourly data older than 7 days
  */
 async function cleanupOldData(db: D1Database): Promise<void> {
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const cutoffDate = formatTelraamDateTime(sevenDaysAgo);
+  try {
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
 
-  console.log(`Cleaning up data older than ${cutoffDate}`);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const cutoffDate = formatTelraamDateTime(sevenDaysAgo);
 
-  const result = await db
-    .prepare('DELETE FROM sensor_hourly_data WHERE hour_timestamp < ?')
-    .bind(cutoffDate)
-    .run();
+    console.log(`Cleaning up data older than ${cutoffDate}`);
 
-  console.log(`Deleted ${result.meta.changes || 0} old hourly records`);
+    const result = await db
+      .prepare('DELETE FROM sensor_hourly_data WHERE hour_timestamp < ?')
+      .bind(cutoffDate)
+      .run();
+
+    console.log(`Deleted ${result.meta.changes || 0} old hourly records`);
+  } catch (error) {
+    throw new Error(`Failed to clean up old data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
