@@ -80,13 +80,6 @@ async function importSensors(csvPath) {
       data[col] = values[idx];
     });
 
-    // Skip segment 9000009735 (has NaT date)
-    if (data.segment_id === '9000009735') {
-      console.log(`Skipping segment ${data.segment_id} (NaT date)`);
-      skippedCount++;
-      continue;
-    }
-
     // Skip rows with NaT or missing critical data
     if (data.date === 'NaT' || !data.segment_id || !data.lat || !data.lon) {
       console.warn(`Skipping segment ${data.segment_id}: missing critical data`);
