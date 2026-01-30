@@ -374,3 +374,176 @@ export async function getCountyDetails(
     sensors: sensors || [],
   };
 }
+
+/**
+ * Get monitoring data for external health checks
+ * Compares today vs yesterday record counts to detect worker failures
+ */
+export interface MonitoringData {
+  timestamp: string; // When this check was run (ISO8601 UTC)
+  today: {
+    date: string; // YYYY-MM-DD
+    record_count: number;
+    sensor_count: number;
+    earliest_record: string | null;
+    latest_record: string | null;
+  };
+  yesterday: {
+    date: string; // YYYY-MM-DD
+    record_count: number;
+    sensor_count: number;
+    earliest_record: string | null;
+    latest_record: string | null;
+  };
+  comparison: {
+    count_change: number; // today - yesterday
+    count_change_percent: number; // (today - yesterday) / yesterday * 100
+    is_healthy: boolean; // true if today >= yesterday * 0.7 (70% threshold)
+    threshold: number; // 0.7 = 70%
+  };
+  diagnostic: {
+    worker_likely_ran: boolean; // true if today has data
+    data_freshness_hours: number; // hours since latest record
+    last_update_time: string | null; // ISO8601 of latest record timestamp
+  };
+}
+
+export async function getMonitoringData(
+  db: D1Database
+): Promise<MonitoringData | null> {
+  // Get today and yesterday date boundaries
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  yesterday.setUTCHours(0, 0, 0, 0);
+
+  const today = new Date(yesterday);
+  today.setUTCDate(today.getUTCDate() + 1);
+
+  const tomorrow = new Date(today);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+
+  // Format dates
+  const formatDate = (d: Date): string => {
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatDateTime = (d: Date): string => {
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    const hour = String(d.getUTCHours()).padStart(2, '0');
+    const minute = String(d.getUTCMinutes()).padStart(2, '0');
+    const second = String(d.getUTCSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hour}:${minute}:${second}Z`;
+  };
+
+  const todayStr = formatDate(today);
+  const yesterdayStr = formatDate(yesterday);
+  const tomorrowStr = formatDate(tomorrow);
+
+  // Query today's data
+  const todayQuery = await db
+    .prepare(`
+      SELECT
+        COUNT(*) as record_count,
+        COUNT(DISTINCT segment_id) as sensor_count,
+        MIN(hour_timestamp) as earliest_record,
+        MAX(hour_timestamp) as latest_record
+      FROM sensor_hourly_data
+      WHERE hour_timestamp >= ?
+        AND hour_timestamp < ?
+    `)
+    .bind(`${todayStr} 00:00:00Z`, `${tomorrowStr} 00:00:00Z`)
+    .first<{
+      record_count: number;
+      sensor_count: number;
+      earliest_record: string | null;
+      latest_record: string | null;
+    }>();
+
+  // Query yesterday's data
+  const yesterdayQuery = await db
+    .prepare(`
+      SELECT
+        COUNT(*) as record_count,
+        COUNT(DISTINCT segment_id) as sensor_count,
+        MIN(hour_timestamp) as earliest_record,
+        MAX(hour_timestamp) as latest_record
+      FROM sensor_hourly_data
+      WHERE hour_timestamp >= ?
+        AND hour_timestamp < ?
+    `)
+    .bind(`${yesterdayStr} 00:00:00Z`, `${todayStr} 00:00:00Z`)
+    .first<{
+      record_count: number;
+      sensor_count: number;
+      earliest_record: string | null;
+      latest_record: string | null;
+    }>();
+
+  if (!todayQuery || !yesterdayQuery) {
+    return null;
+  }
+
+  const todayData = todayQuery;
+  const yesterdayData = yesterdayQuery;
+
+  // Calculate health metrics
+  const countChange = todayData.record_count - yesterdayData.record_count;
+  const countChangePercent =
+    yesterdayData.record_count > 0
+      ? (countChange / yesterdayData.record_count) * 100
+      : todayData.record_count > 0
+        ? 100
+        : 0;
+
+  const HEALTH_THRESHOLD = 0.7; // 70% of yesterday's count is acceptable
+  const isHealthy =
+    todayData.record_count >= yesterdayData.record_count * HEALTH_THRESHOLD;
+
+  // Calculate data freshness
+  const latestRecord = todayData.latest_record || yesterdayData.latest_record;
+  let dataFreshnessHours = 0;
+  let workerLikelyRan = false;
+
+  if (latestRecord) {
+    const latest = new Date(latestRecord);
+    const diffMs = now.getTime() - latest.getTime();
+    dataFreshnessHours = diffMs / (1000 * 60 * 60);
+    // Worker likely ran if there's data from today (not just yesterday)
+    workerLikelyRan = todayData.record_count > 0;
+  }
+
+  return {
+    timestamp: formatDateTime(now),
+    today: {
+      date: todayStr,
+      record_count: todayData.record_count,
+      sensor_count: todayData.sensor_count,
+      earliest_record: todayData.earliest_record,
+      latest_record: todayData.latest_record,
+    },
+    yesterday: {
+      date: yesterdayStr,
+      record_count: yesterdayData.record_count,
+      sensor_count: yesterdayData.sensor_count,
+      earliest_record: yesterdayData.earliest_record,
+      latest_record: yesterdayData.latest_record,
+    },
+    comparison: {
+      count_change: countChange,
+      count_change_percent: Math.round(countChangePercent * 100) / 100,
+      is_healthy: isHealthy,
+      threshold: HEALTH_THRESHOLD,
+    },
+    diagnostic: {
+      worker_likely_ran: workerLikelyRan,
+      data_freshness_hours: Math.round(dataFreshnessHours * 100) / 100,
+      last_update_time: latestRecord,
+    },
+  };
+}
