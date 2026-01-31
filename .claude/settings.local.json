@@ -15,7 +15,13 @@
       "Bash(npx wrangler deploy:*)",
       "Bash(curl:*)",
       "Bash(python3:*)",
-      "mcp__ide__executeCode"
+      "mcp__ide__executeCode",
+      "Bash(npm run deploy:*)",
+      "Bash(npm install:*)",
+      "Bash(npx wrangler secret:*)",
+      "Bash(export TELRAAM_API_KEY=jIyO0zZ1Yd9cFn6s5RlIM9qhAQbUG7AK8pH0bhRj)",
+      "Bash(npx tsx:*)",
+      "Bash(npx wrangler tail:*)"
     ],
     "deny": [],
     "ask": []

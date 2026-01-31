@@ -1,13 +1,24 @@
 /**
  * Scheduled Worker: Update Sensor Data
- * Runs nightly to fetch hourly traffic data from Telraam API
+ * Runs hourly between midnight and 4am to fetch hourly traffic data from Telraam API
  * and update the D1 database with historical hourly bike counts
+ *
+ * Uses batch processing to handle all sensors across 5 nightly runs:
+ * - 00:00 UTC → Batch 1 (sensors 1-15)
+ * - 01:00 UTC → Batch 2 (sensors 16-30)
+ * - 02:00 UTC → Batch 3 (sensors 31-45)
+ * - 03:00 UTC → Batch 4 (sensors 46-60)
+ * - 04:00 UTC → Batch 5 (sensors 61-73)
  */
 
 interface Env {
   DB: D1Database;
   TELRAAM_API_KEY: string;
 }
+
+// Batch configuration
+const SENSORS_PER_BATCH = 15; // Process 15 sensors per run
+const BATCH_SCHEDULE = [0, 1, 2, 3, 4]; // Hours when batches run (maps hour to batch index)
 
 interface SensorLocation {
   segment_id: number;
@@ -40,32 +51,64 @@ export default {
     env: Env,
     ctx: ExecutionContext
   ): Promise<void> {
-    console.log('Starting scheduled hourly sensor data update...');
+    const startTime = Date.now();
+    const now = new Date();
+    console.log(`[${now.toISOString()}] Starting scheduled sensor data update...`);
 
     try {
       // Step 1: Clean up data older than 7 days
       await cleanupOldData(env.DB);
 
-      // Step 2: Get all sensors we track
-      const { results: sensors } = await env.DB
-        .prepare('SELECT segment_id, timezone FROM sensor_locations')
+      // Step 2: Get all sensors we track (ORDER BY for deterministic processing)
+      const { results: allSensors } = await env.DB
+        .prepare('SELECT segment_id, timezone FROM sensor_locations ORDER BY segment_id ASC')
         .all<SensorLocation>();
 
-      if (!sensors || sensors.length === 0) {
+      if (!allSensors || allSensors.length === 0) {
         console.log('No sensors found in database');
         return;
       }
 
-      console.log(`Found ${sensors.length} sensors to update`);
+      console.log(`Total sensors in database: ${allSensors.length}`);
 
-      // Step 3: For each sensor, determine what hours we need to fetch
-      const now = new Date();
-      const currentHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
+      // Step 3: Calculate which batch to process based on current UTC hour
+      const currentHour = now.getUTCHours();
+      const totalBatches = Math.ceil(allSensors.length / SENSORS_PER_BATCH);
 
+      // Map hour to batch index (0-4 → batches 1-5)
+      const batchIndex = BATCH_SCHEDULE.indexOf(currentHour);
+
+      if (batchIndex === -1) {
+        console.log(`Current hour ${currentHour} is not in the batch schedule [${BATCH_SCHEDULE.join(', ')}]. Worker should only run at midnight-4am UTC.`);
+        console.log(`If running manually, defaulting to batch 1.`);
+        // Default to batch 0 if triggered outside schedule
+        const sensors = allSensors.slice(0, Math.min(SENSORS_PER_BATCH, allSensors.length));
+        console.log(`Processing ${sensors.length} sensors (batch 1/${totalBatches} by default)`);
+      }
+
+      const batchStart = batchIndex === -1 ? 0 : batchIndex * SENSORS_PER_BATCH;
+      const batchEnd = Math.min(batchStart + SENSORS_PER_BATCH, allSensors.length);
+      const sensors = allSensors.slice(batchStart, batchEnd);
+      const actualBatchIndex = batchIndex === -1 ? 0 : batchIndex;
+
+      console.log(`Batch processing: batch ${actualBatchIndex + 1}/${totalBatches} at hour ${currentHour}:00 UTC`);
+      console.log(`Processing sensors ${batchStart + 1}-${batchEnd} (${sensors.length} sensors)`);
+      console.log(`Sensor IDs in batch: ${sensors.map(s => s.segment_id).join(', ')}`);
+
+      // Step 4: Process each sensor in this batch
+      const currentHourDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
       let totalHoursInserted = 0;
       let sensorsUpdated = 0;
+      let sensorsSkipped = 0;
+      let sensorsErrored = 0;
+      const processedSensors: number[] = [];
 
-      for (const sensor of sensors) {
+      for (let i = 0; i < sensors.length; i++) {
+        const sensor = sensors[i];
+        const sensorStartTime = Date.now();
+
+        console.log(`\n[Sensor ${i + 1}/${sensors.length}] Processing segment_id: ${sensor.segment_id}`);
+
         try {
           // Get the latest hour we have for this sensor
           const { results: latestHours } = await env.DB
@@ -73,60 +116,84 @@ export default {
             .bind(sensor.segment_id)
             .all<HourlyDataRow>();
 
-          let startTime: Date;
+          let fetchStartTime: Date;
 
           if (!latestHours || latestHours.length === 0) {
             // No data yet - fetch last 24 hours
-            startTime = new Date(currentHour.getTime() - 24 * 60 * 60 * 1000);
-            console.log(`Sensor ${sensor.segment_id}: No data found, fetching last 24 hours`);
+            fetchStartTime = new Date(currentHourDate.getTime() - 24 * 60 * 60 * 1000);
+            console.log(`  No existing data - fetching last 24 hours from ${fetchStartTime.toISOString()}`);
           } else {
             // Have data - fetch from next hour after latest
             const lastHour = new Date(latestHours[0].hour_timestamp);
-            startTime = new Date(lastHour.getTime() + 60 * 60 * 1000); // +1 hour
-            console.log(`Sensor ${sensor.segment_id}: Last data at ${lastHour.toISOString()}, fetching from ${startTime.toISOString()}`);
+            fetchStartTime = new Date(lastHour.getTime() + 60 * 60 * 1000); // +1 hour
+            console.log(`  Last data: ${lastHour.toISOString()}, fetching from ${fetchStartTime.toISOString()}`);
           }
 
           // Don't fetch the current incomplete hour
-          const endTime = new Date(currentHour.getTime() - 60 * 60 * 1000); // -1 hour from current
+          const fetchEndTime = new Date(currentHourDate.getTime() - 60 * 60 * 1000); // -1 hour from current
 
-          if (startTime >= currentHour) {
-            console.log(`Sensor ${sensor.segment_id}: Already up to date`);
+          if (fetchStartTime >= currentHourDate) {
+            console.log(`  Already up to date - skipping`);
+            sensorsSkipped++;
             continue;
           }
 
           // Sleep 5 seconds to avoid Telraam API rate limits (429 errors)
-          await sleep(5000);
+          if (i > 0) {
+            console.log(`  Waiting 5s before API call...`);
+            await sleep(5000);
+          }
 
           // Fetch hourly data from Telraam
+          const apiCallStart = Date.now();
           const hourlyData = await fetchHourlyData(
             env.TELRAAM_API_KEY,
             sensor.segment_id.toString(),
-            startTime,
-            endTime
+            fetchStartTime,
+            fetchEndTime
           );
+          const apiCallDuration = Date.now() - apiCallStart;
+          console.log(`  API call completed in ${apiCallDuration}ms, returned ${hourlyData.length} records`);
 
           if (hourlyData.length === 0) {
-            console.log(`Sensor ${sensor.segment_id}: No new data available`);
+            console.log(`  No new data available - skipping`);
+            sensorsSkipped++;
             continue;
           }
 
           // Insert hourly data (batch by 50 to avoid subrequest limits)
+          const insertStart = Date.now();
           const inserted = await insertHourlyData(env.DB, sensor.segment_id, hourlyData);
+          const insertDuration = Date.now() - insertStart;
+
           totalHoursInserted += inserted;
           sensorsUpdated++;
+          processedSensors.push(sensor.segment_id);
 
-          console.log(`Sensor ${sensor.segment_id}: Inserted ${inserted} hours of data`);
+          const sensorDuration = Date.now() - sensorStartTime;
+          console.log(`  ✅ Inserted ${inserted} hours in ${insertDuration}ms (total sensor time: ${sensorDuration}ms)`);
 
         } catch (error) {
-          console.error(`Error processing sensor ${sensor.segment_id}:`, error);
+          sensorsErrored++;
+          const sensorDuration = Date.now() - sensorStartTime;
+          console.error(`  ❌ Error after ${sensorDuration}ms:`, error);
           // Continue with next sensor
         }
       }
 
-      console.log(`Update complete: ${sensorsUpdated} sensors updated, ${totalHoursInserted} total hours inserted`);
+      const totalDuration = Date.now() - startTime;
+      console.log(`\n${'='.repeat(70)}`);
+      console.log(`Batch ${actualBatchIndex + 1} complete in ${(totalDuration / 1000).toFixed(1)}s`);
+      console.log(`  Sensors updated: ${sensorsUpdated}`);
+      console.log(`  Sensors skipped (up to date): ${sensorsSkipped}`);
+      console.log(`  Sensors errored: ${sensorsErrored}`);
+      console.log(`  Total hours inserted: ${totalHoursInserted}`);
+      console.log(`  Successfully processed IDs: ${processedSensors.join(', ')}`);
+      console.log(`${'='.repeat(70)}`);
 
     } catch (error) {
-      console.error('Error in scheduled worker:', error);
+      const totalDuration = Date.now() - startTime;
+      console.error(`Worker failed after ${(totalDuration / 1000).toFixed(1)}s:`, error);
       throw error;
     }
   },
