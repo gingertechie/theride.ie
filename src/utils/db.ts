@@ -6,7 +6,7 @@
  * Get yesterday's date range (midnight to midnight UTC)
  * Used for calculating "last complete day" statistics
  */
-function getYesterdayDateRange(): { start: string; end: string } {
+export function getYesterdayDateRange(): { start: string; end: string } {
   const now = new Date();
   const yesterday = new Date(now);
   yesterday.setUTCDate(yesterday.getUTCDate() - 1);

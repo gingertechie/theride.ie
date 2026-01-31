@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { getYesterdayDateRange } from '@/utils/db';
 
 /**
  * GET /api/stats/busiest-hour.json
@@ -8,32 +9,6 @@ import type { APIRoute } from 'astro';
 interface BusiestHourResult {
   hour: number;
   total_bikes: number;
-}
-
-/**
- * Get yesterday's date range (midnight to midnight UTC)
- */
-function getYesterdayDateRange(): { start: string; end: string } {
-  const now = new Date();
-  const yesterday = new Date(now);
-  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-  yesterday.setUTCHours(0, 0, 0, 0);
-
-  const today = new Date(yesterday);
-  today.setUTCDate(today.getUTCDate() + 1);
-
-  // Format as ISO8601: YYYY-MM-DD HH:MM:SSZ
-  const formatDate = (date: Date): string => {
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    return `${year}-${month}-${day} 00:00:00Z`;
-  };
-
-  return {
-    start: formatDate(yesterday),
-    end: formatDate(today),
-  };
 }
 
 export const GET: APIRoute = async ({ locals }) => {
@@ -66,12 +41,13 @@ export const GET: APIRoute = async ({ locals }) => {
           CAST(SUBSTR(hour_timestamp, 12, 2) AS INTEGER) AS hour,
           SUM(bike) AS total_bikes
         FROM sensor_hourly_data
-        WHERE hour_timestamp >= "${yesterday.start}"
-          AND hour_timestamp < "${yesterday.end}"
+        WHERE hour_timestamp >= ?
+          AND hour_timestamp < ?
         GROUP BY SUBSTR(hour_timestamp, 12, 2)
         ORDER BY total_bikes DESC
         LIMIT 1
       `)
+      .bind(yesterday.start, yesterday.end)
       .first<BusiestHourResult>();
 
     if (!result || result.total_bikes === 0) {
