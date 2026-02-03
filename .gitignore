@@ -31,6 +31,5 @@ tmp/
 .claude/*.local.*
 
 # Environment files
-.env
 .env.local
 .env.*.local
