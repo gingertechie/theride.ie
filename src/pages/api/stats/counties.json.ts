@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getTopCountiesByBikes } from '@/utils/db';
 import { CountiesQuerySchema, validateInput } from '@/schemas/api';
+import { errorResponse, databaseUnavailableResponse } from '@/utils/errors';
 
 /**
  * GET /api/stats/counties.json
@@ -10,23 +11,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
   try {
     // Check if runtime is available
     if (!locals.runtime?.env?.DB) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'D1 database binding not available. Make sure you are running with wrangler dev or have set up local bindings.',
-          debug: {
-            hasRuntime: !!locals.runtime,
-            hasEnv: !!locals.runtime?.env,
-            available: Object.keys(locals.runtime?.env || {}),
-          }
-        }),
-        {
-          status: 503,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      return databaseUnavailableResponse();
     }
 
     const db = locals.runtime.env.DB as D1Database;
@@ -83,17 +68,6 @@ export const GET: APIRoute = async ({ locals, url }) => {
       }
     );
   } catch (error) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    return errorResponse(error, 'Failed to retrieve county statistics');
   }
 };
