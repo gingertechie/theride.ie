@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getSensorById, getSensorStats, upsertSensor, deleteSensor } from '@/utils/db';
+import { verifyAdminAuth, unauthorizedResponse } from '@/utils/auth';
 
 /**
  * GET /api/sensors/[id].json
@@ -75,6 +76,11 @@ export const GET: APIRoute = async ({ locals, params }) => {
  * Update or insert a sensor
  */
 export const PUT: APIRoute = async ({ locals, params, request }) => {
+  // Verify authentication
+  if (!verifyAdminAuth(request, locals.runtime.env)) {
+    return unauthorizedResponse();
+  }
+
   try {
     const segmentId = parseInt(params.id || '');
 
@@ -133,7 +139,12 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
  * DELETE /api/sensors/[id].json
  * Delete a sensor
  */
-export const DELETE: APIRoute = async ({ locals, params }) => {
+export const DELETE: APIRoute = async ({ locals, params, request }) => {
+  // Verify authentication
+  if (!verifyAdminAuth(request, locals.runtime.env)) {
+    return unauthorizedResponse();
+  }
+
   try {
     const segmentId = parseInt(params.id || '');
 

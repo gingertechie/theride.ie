@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getSensorsInBounds } from '@/utils/db';
+import { verifyAdminAuth, unauthorizedResponse } from '@/utils/auth';
 
 /**
  * POST /api/sensors/search.json
@@ -11,6 +12,11 @@ import { getSensorsInBounds } from '@/utils/db';
  * Note: period and date search removed as sensor_locations no longer stores traffic data
  */
 export const POST: APIRoute = async ({ locals, request }) => {
+  // Verify authentication
+  if (!verifyAdminAuth(request, locals.runtime.env)) {
+    return unauthorizedResponse();
+  }
+
   try {
     const db = locals.runtime.env.DB as D1Database;
     const params = await request.json();
