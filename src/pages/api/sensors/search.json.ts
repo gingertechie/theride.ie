@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getSensorsInBounds } from '@/utils/db';
 import { verifyAdminAuth, unauthorizedResponse } from '@/utils/auth';
+import { SearchBoundsSchema, validateInput } from '@/schemas/api';
 
 /**
  * POST /api/sensors/search.json
@@ -21,40 +22,18 @@ export const POST: APIRoute = async ({ locals, request }) => {
     const db = locals.runtime.env.DB as D1Database;
     const params = await request.json();
 
-    // Search by geographic bounds
-    if (params.bounds) {
-      const { minLat, maxLat, minLon, maxLon } = params.bounds;
+    // Validate search parameters
+    const validation = validateInput(SearchBoundsSchema, params);
 
-      if (
-        typeof minLat !== 'number' ||
-        typeof maxLat !== 'number' ||
-        typeof minLon !== 'number' ||
-        typeof maxLon !== 'number'
-      ) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Invalid bounds parameters',
-          }),
-          {
-            status: 400,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-      }
-
-      const sensors = await getSensorsInBounds(db, minLat, maxLat, minLon, maxLon);
-
+    if (!validation.success) {
       return new Response(
         JSON.stringify({
-          success: true,
-          data: sensors,
-          count: sensors.length,
+          success: false,
+          error: validation.error,
+          details: validation.details,
         }),
         {
-          status: 200,
+          status: 400,
           headers: {
             'Content-Type': 'application/json',
           },
@@ -62,13 +41,23 @@ export const POST: APIRoute = async ({ locals, request }) => {
       );
     }
 
+    const { bounds } = validation.data;
+    const sensors = await getSensorsInBounds(
+      db,
+      bounds.minLat,
+      bounds.maxLat,
+      bounds.minLon,
+      bounds.maxLon
+    );
+
     return new Response(
       JSON.stringify({
-        success: false,
-        error: 'No search criteria provided. Use bounds parameter.',
+        success: true,
+        data: sensors,
+        count: sensors.length,
       }),
       {
-        status: 400,
+        status: 200,
         headers: {
           'Content-Type': 'application/json',
         },

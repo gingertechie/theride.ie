@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getTopCountiesByBikes } from '@/utils/db';
+import { CountiesQuerySchema, validateInput } from '@/schemas/api';
 
 /**
  * GET /api/stats/counties.json
@@ -30,10 +31,28 @@ export const GET: APIRoute = async ({ locals, url }) => {
 
     const db = locals.runtime.env.DB as D1Database;
 
-    // Get limit from query params, default to 3
-    const limitParam = url.searchParams.get('limit');
-    const limit = limitParam ? parseInt(limitParam, 10) : 3;
+    // Validate query parameters
+    const validation = validateInput(CountiesQuerySchema, {
+      limit: url.searchParams.get('limit'),
+    });
 
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: validation.error,
+          details: validation.details,
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
+    const { limit } = validation.data;
     const counties = await getTopCountiesByBikes(db, limit);
 
     if (!counties || counties.length === 0) {
