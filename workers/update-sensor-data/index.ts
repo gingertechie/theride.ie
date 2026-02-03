@@ -11,6 +11,8 @@
  * - 04:00 UTC → Batch 5 (sensors 61-73)
  */
 
+import { fetchWithRetry, RetryError } from '../shared/fetch-with-retry';
+
 interface Env {
   DB: D1Database;
   TELRAAM_API_KEY: string;
@@ -201,6 +203,7 @@ export default {
 
 /**
  * Fetch hourly traffic data from Telraam API for a specific segment and time range
+ * Uses exponential backoff retry for resilience against temporary API failures
  */
 async function fetchHourlyData(
   apiKey: string,
@@ -219,22 +222,41 @@ async function fetchHourlyData(
 
   console.log(`Fetching data for segment ${segmentId} from ${body.time_start} to ${body.time_end}`);
 
-  const response = await fetch('https://telraam-api.net/v1/reports/traffic', {
-    method: 'POST',
-    headers: {
-      'X-Api-Key': apiKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  try {
+    const response = await fetchWithRetry(
+      'https://telraam-api.net/v1/reports/traffic',
+      {
+        method: 'POST',
+        headers: {
+          'X-Api-Key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      },
+      {
+        maxRetries: 3,
+        initialDelayMs: 2000,
+        maxDelayMs: 10000,
+      }
+    );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Telraam API error for segment ${segmentId}: ${response.status} ${errorText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Telraam API error for segment ${segmentId}: ${response.status} ${errorText}`);
+    }
+
+    const data: TelraamTrafficResponse = await response.json();
+    return data.report || [];
+
+  } catch (error) {
+    if (error instanceof RetryError) {
+      console.error(
+        `Failed to fetch data for segment ${segmentId} after ${error.attempts} attempts. ` +
+        `Last error: ${error.lastError.message}`
+      );
+    }
+    throw error;
   }
-
-  const data: TelraamTrafficResponse = await response.json();
-  return data.report || [];
 }
 
 /**
