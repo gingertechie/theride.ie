@@ -12,6 +12,7 @@
  */
 
 import { fetchWithRetry, RetryError } from '../shared/fetch-with-retry';
+import { TelraamTrafficResponseSchema } from '../shared/telraam-schema';
 
 interface Env {
   DB: D1Database;
@@ -245,8 +246,16 @@ async function fetchHourlyData(
       throw new Error(`Telraam API error for segment ${segmentId}: ${response.status} ${errorText}`);
     }
 
-    const data: TelraamTrafficResponse = await response.json();
-    return data.report || [];
+    const data = await response.json();
+
+    // Validate API response structure
+    const validation = TelraamTrafficResponseSchema.safeParse(data);
+    if (!validation.success) {
+      console.error(`Invalid Telraam API response for segment ${segmentId}:`, validation.error);
+      throw new Error(`Invalid API response structure: ${validation.error.message}`);
+    }
+
+    return validation.data.report || [];
 
   } catch (error) {
     if (error instanceof RetryError) {
