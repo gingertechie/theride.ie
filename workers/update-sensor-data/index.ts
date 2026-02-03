@@ -13,6 +13,7 @@
 
 import { fetchWithRetry, RetryError } from '../shared/fetch-with-retry';
 import { TelraamTrafficResponseSchema } from '../shared/telraam-schema';
+import { formatDateTime } from '../shared/date-formatting';
 
 interface Env {
   DB: D1Database;
@@ -217,8 +218,8 @@ async function fetchHourlyData(
     level: 'segments',
     format: 'per-hour',
     id: segmentId,
-    time_start: formatTelraamDateTime(startTime),
-    time_end: formatTelraamDateTime(endTime),
+    time_start: formatDateTime(startTime),
+    time_end: formatDateTime(endTime),
   };
 
   console.log(`Fetching data for segment ${segmentId} from ${body.time_start} to ${body.time_end}`);
@@ -384,7 +385,7 @@ async function insertHourlyData(
 async function cleanupOldData(db: D1Database): Promise<void> {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const cutoffDate = formatTelraamDateTime(sevenDaysAgo);
+  const cutoffDate = formatDateTime(sevenDaysAgo);
 
   console.log(`Cleaning up data older than ${cutoffDate}`);
 
@@ -394,20 +395,6 @@ async function cleanupOldData(db: D1Database): Promise<void> {
     .run();
 
   console.log(`Deleted ${result.meta.changes || 0} old hourly records`);
-}
-
-/**
- * Format Date object to Telraam API datetime format
- */
-function formatTelraamDateTime(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const hour = String(date.getUTCHours()).padStart(2, '0');
-  const minute = String(date.getUTCMinutes()).padStart(2, '0');
-  const second = String(date.getUTCSeconds()).padStart(2, '0');
-
-  return `${year}-${month}-${day} ${hour}:${minute}:${second}Z`;
 }
 
 /**
