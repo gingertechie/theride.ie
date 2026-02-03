@@ -2,9 +2,11 @@ name = "update-sensor-data"
 main = "index.ts"
 compatibility_date = "2024-11-28"
 
-# Schedule: Run hourly between midnight and 4am to process sensor batches
+# Schedule: Runs hourly to fetch incremental sensor data
+# Each sensor fetches from its latest database timestamp to now
+# Rate limited to 5 seconds between API calls to respect Telraam limits
 # Cron format: minute hour day month day-of-week
-# 5 batches run at 00:00, 01:00, 02:00, 03:00, 04:00 UTC
+# Can be changed without affecting logic - worker is schedule-agnostic
 [triggers]
 crons = ["0 0,1,2,3,4 * * *"]
 

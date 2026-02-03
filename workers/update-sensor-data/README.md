@@ -4,19 +4,18 @@ This Cloudflare Worker runs on a schedule (daily at 11:59 PM) to fetch the lates
 
 ## What It Does
 
-1. Runs automatically every night at 11:59 PM (23:59)
-2. Fetches live traffic snapshot data from Telraam API for all sensors in Ireland
-3. Updates existing sensors in the database with:
-   - `bike` - Bicycle count
-   - `heavy` - Heavy vehicle count
-   - `car` - Car count
-   - `pedestrian` - Pedestrian count
-   - `uptime` - Sensor uptime percentage
-   - `v85` - 85th percentile speed
-   - `last_data_package` - Timestamp of last data update
-   - `night` - Night traffic count (if available)
-   - `updated_at` - Record update timestamp
-4. Only updates sensors that already exist in the database (ignores new segments)
+This worker performs incremental hourly data fetching for all Telraam sensors:
+
+1. **Schedule-agnostic design**: Runs on configured cron schedule (currently hourly 00:00-04:00 UTC)
+2. **Per-sensor incremental fetching**:
+   - Queries `sensor_hourly_data` table for each sensor's latest `hour_timestamp`
+   - New sensors: Fetches last 24 hours of data
+   - Existing sensors: Fetches from (latest hour + 1) to (current hour - 1)
+3. **Upsert pattern**: Uses `ON CONFLICT DO UPDATE` to safely handle re-runs
+4. **Rate limiting**: 5-second delay between Telraam API calls to avoid 429 errors
+5. **Data retention**: Automatically cleans up hourly data older than 7 days
+
+The worker is robust to schedule changes - you can modify the cron triggers without affecting the data fetching logic.
 
 ## Setup & Deployment
 
@@ -97,17 +96,12 @@ The cron schedule is configured in `wrangler.toml`:
 
 ```toml
 [triggers]
-crons = ["59 23 * * *"]
+crons = ["0 0,1,2,3,4 * * *"]
 ```
 
-This uses standard cron syntax:
-- `59` = Minute (59)
-- `23` = Hour (11 PM in 24-hour format)
-- `*` = Every day of the month
-- `*` = Every month
-- `*` = Every day of the week
+Current schedule runs hourly from midnight to 4am UTC. This can be changed to any schedule without affecting the worker logic - each run independently determines what data to fetch per sensor based on database state.
 
-To change the schedule, modify this line and redeploy.
+**Note**: With 73 sensors and 5-second API rate limiting, processing all sensors takes ~6 minutes. The current schedule spreads runs throughout early morning hours to distribute load.
 
 ## Geographic Coverage
 
@@ -135,21 +129,36 @@ This is configured in the API request body:
 ## Monitoring
 
 Key metrics logged on each run:
-- Total number of sensor reports received from API
-- Number of sensors in our database
-- Number of matching sensors to update
-- Batch processing progress
-- Number of sensors updated/skipped
-- Any errors encountered
+- Total sensors processed
+- Sensors updated with new data
+- Sensors skipped (already up-to-date)
+- Sensors with errors
+- Total API calls made
+- Processing duration
 
 Example log output:
 ```
 Starting scheduled sensor data update...
-Received 45 sensor reports from Telraam API
-Database has 40 registered sensors
-Found 38 matching sensors to update
-Batch 1: Updated 38 sensors
-Update complete: 38 sensors updated, 7 sensors skipped (not in database)
+Fetched 73 sensors from database
+Processing all sensors with incremental fetching
+
+[Sensor 1/73] Processing segment_id: 9000009735
+  Last data: 2026-02-02T23:00:00Z, fetching from 2026-02-03T00:00:00Z
+  Waiting 5s before API call...
+  API call completed in 1247ms, returned 3 records
+  ✅ Inserted 3 hours in 145ms (total sensor time: 6392ms)
+
+...
+
+======================================================================
+Update complete in 456.3s
+  Total sensors: 73
+  Sensors updated: 68
+  Sensors skipped (up to date): 5
+  Sensors errored: 0
+  Total hours inserted: 204
+  Successfully processed IDs: 9000009735, 9000001470, ...
+======================================================================
 ```
 
 ## Troubleshooting
