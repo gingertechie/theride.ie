@@ -8,6 +8,11 @@
     "start": "astro dev",
     "build": "astro check && astro build",
     "preview": "wrangler pages dev ./dist --d1=DB=theride-db",
+    "test": "npm run test:unit && npm run test:typecheck",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:typecheck": "astro check",
+    "test:coverage": "vitest run --coverage",
     "backfill": "npx tsx scripts/backfill-sensor-data.ts",
     "db:init-local": "npx wrangler d1 execute theride-db --local --config=wrangler.toml --file=./db/schema.sql && npx wrangler d1 execute theride-db --local --config=wrangler.toml --file=./db/migrations/0001_seed_sensor_locations.sql",
     "db:query-local": "npx wrangler d1 execute theride-db --local --config=wrangler.toml --command",
@@ -27,6 +32,8 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@vitest/ui": "^4.0.18",
+    "vitest": "^4.0.18",
     "wrangler": "^4.51.0"
   }
 }
