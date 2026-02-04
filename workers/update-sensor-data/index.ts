@@ -65,20 +65,18 @@ export default {
       // Step 1: Clean up data older than 7 days
       await cleanupOldData(env.DB);
 
-      // Step 2: Get all sensors we track (ORDER BY for deterministic processing)
-      const { results: sensors } = await env.DB
-        .prepare('SELECT segment_id, timezone FROM sensor_locations ORDER BY segment_id ASC')
-        .all<SensorLocation>();
+      // Step 2: Get sensors with oldest data (or no data at all)
+      console.log(`🔍 Finding ${CHUNK_SIZE} sensors with oldest data...`);
+      const sensors = await getSensorsNeedingUpdate(env.DB, CHUNK_SIZE);
 
-      if (!sensors || sensors.length === 0) {
-        console.log('No sensors found in database');
+      if (sensors.length === 0) {
+        console.log('✅ All sensors up to date - nothing to do');
         return;
       }
 
-      console.log(`Fetched ${sensors.length} sensors from database`);
-      console.log(`Processing all sensors with incremental fetching`);
+      console.log(`📦 Processing ${sensors.length} sensors`);
 
-      // Step 3: Process each sensor
+      // Step 3: Process selected sensors
       const currentHourDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
       let totalHoursInserted = 0;
       let sensorsUpdated = 0;
@@ -166,12 +164,11 @@ export default {
 
       const totalDuration = Date.now() - startTime;
       console.log(`\n${'='.repeat(70)}`);
-      console.log(`Update complete in ${(totalDuration / 1000).toFixed(1)}s`);
-      console.log(`  Total sensors: ${sensors.length}`);
-      console.log(`  Sensors updated: ${sensorsUpdated}`);
+      console.log(`Batch complete in ${(totalDuration / 1000).toFixed(1)}s`);
+      console.log(`  Sensors processed: ${sensorsUpdated}`);
       console.log(`  Sensors skipped (up to date): ${sensorsSkipped}`);
       console.log(`  Sensors errored: ${sensorsErrored}`);
-      console.log(`  Total hours inserted: ${totalHoursInserted}`);
+      console.log(`  Hours inserted: ${totalHoursInserted}`);
       if (processedSensors.length > 0) {
         console.log(`  Successfully processed IDs: ${processedSensors.join(', ')}`);
       }
