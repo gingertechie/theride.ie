@@ -8,7 +8,7 @@ compatibility_date = "2024-11-28"
 # Cron format: minute hour day month day-of-week
 # Can be changed without affecting logic - worker is schedule-agnostic
 [triggers]
-crons = ["0 0,1,2,3,4 * * *"]
+crons = ["*/5 0-4 * * *"]
 
 # D1 Database binding (same database as main app)
 [[d1_databases]]
