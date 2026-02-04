@@ -4,14 +4,25 @@
  * Incrementally fetches hourly traffic data from Telraam API for all sensors.
  *
  * Design:
- * - Schedule-agnostic: Works with any cron schedule
- * - Per-sensor incremental: Fetches from latest DB timestamp to now
+ * - Chunked processing: Processes 8 sensors per invocation to stay under Cloudflare's
+ *   50 subrequest limit (free tier)
+ * - Priority-based: Automatically selects sensors with oldest data (or no data)
+ * - Self-organizing: No external state tracking - uses existing hourly data table
+ * - Frequent runs: Runs every 5 minutes (00:00-04:00 UTC) for fast updates
+ * - Per-sensor incremental: Fetches from latest DB timestamp to now for each sensor
  * - Rate limited: 5s between API calls to respect Telraam limits
  * - Upsert pattern: Safe to re-run without duplicating data
  * - 7-day retention: Automatically cleans up old hourly data
+ * - Early exit: Stops immediately if all sensors are up to date
  *
  * Each sensor independently determines its fetch range based on
  * its latest hour_timestamp in the sensor_hourly_data table.
+ *
+ * Subrequest Budget (Free Tier = 50):
+ * - 1 cleanup query
+ * - 1 priority selection query (LEFT JOIN to find oldest data)
+ * - 8 sensors × (1 latest timestamp query + 1 Telraam API call + 1-2 batch inserts)
+ * - Total: ~27-35 subrequests per invocation
  */
 
 import { fetchWithRetry, RetryError } from '../shared/fetch-with-retry';
