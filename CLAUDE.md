@@ -30,6 +30,42 @@ npm run astro -- <command>
 
 **Important:** For development with D1 database access, always use `npm run dev:wrangler` instead of `npm run dev`.
 
+## Testing
+
+```bash
+# Run all tests (unit tests + TypeScript checks)
+npm test
+
+# Run unit tests only
+npm run test:unit
+
+# Run unit tests in watch mode (for development)
+npm run test:unit:watch
+
+# Run TypeScript type checking only
+npm run test:typecheck
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+**Test Structure:**
+- `tests/` - All test files (mirrors src/ structure)
+- `tests/utils/` - Utility function tests
+- `tests/schemas/` - Zod schema validation tests
+- `vitest.config.ts` - Vitest configuration with path aliases
+
+**Writing Tests:**
+- Use Vitest for unit and integration tests
+- Test files: `*.test.ts` pattern
+- Import test functions: `import { describe, it, expect } from 'vitest'`
+- Path aliases work in tests: `import { foo } from '@/utils/foo'`
+
+**CI/CD:**
+- GitHub Actions runs `npm test` on all PRs and pushes to main
+- TypeScript checks enforce zero compilation errors
+- All tests must pass before merge
+
 ## Architecture
 
 ### Tech Stack
