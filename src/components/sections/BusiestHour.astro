@@ -11,7 +11,7 @@ interface Props {
   timestamp?: string;    // ISO timestamp of the data
 }
 
-const { hour, count, timestamp } = Astro.props;
+const { hour, count, timestamp: _timestamp } = Astro.props;
 
 // Time of day context labels
 function getTimeOfDayLabel(hour: number): string {

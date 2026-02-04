@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { getSensorById, getSensorStats, upsertSensor, deleteSensor } from '@/utils/db';
+import { getSensorById, upsertSensor, deleteSensor } from '@/utils/db';
 import { verifyAdminAuth, unauthorizedResponse } from '@/utils/auth';
 import { SensorLocationSchema, validateInput } from '@/schemas/api';
 
