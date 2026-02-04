@@ -23,6 +23,9 @@ interface Env {
   TELRAAM_API_KEY: string;
 }
 
+// Configuration
+const CHUNK_SIZE = 8; // Process 8 sensors per invocation (stays under 50 subrequests)
+
 interface SensorLocation {
   segment_id: number;
   timezone: string;
