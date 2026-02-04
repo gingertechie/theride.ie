@@ -14,6 +14,10 @@
  * its latest hour_timestamp in the sensor_hourly_data table.
  */
 
+import { fetchWithRetry, RetryError } from '../shared/fetch-with-retry';
+import { TelraamTrafficResponseSchema } from '../shared/telraam-schema';
+import { formatDateTime } from '../shared/date-formatting';
+
 interface Env {
   DB: D1Database;
   TELRAAM_API_KEY: string;
@@ -180,6 +184,7 @@ export default {
 
 /**
  * Fetch hourly traffic data from Telraam API for a specific segment and time range
+ * Uses exponential backoff retry for resilience against temporary API failures
  */
 async function fetchHourlyData(
   apiKey: string,
@@ -192,28 +197,55 @@ async function fetchHourlyData(
     level: 'segments',
     format: 'per-hour',
     id: segmentId,
-    time_start: formatTelraamDateTime(startTime),
-    time_end: formatTelraamDateTime(endTime),
+    time_start: formatDateTime(startTime),
+    time_end: formatDateTime(endTime),
   };
 
   console.log(`Fetching data for segment ${segmentId} from ${body.time_start} to ${body.time_end}`);
 
-  const response = await fetch('https://telraam-api.net/v1/reports/traffic', {
-    method: 'POST',
-    headers: {
-      'X-Api-Key': apiKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  try {
+    const response = await fetchWithRetry(
+      'https://telraam-api.net/v1/reports/traffic',
+      {
+        method: 'POST',
+        headers: {
+          'X-Api-Key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      },
+      {
+        maxRetries: 3,
+        initialDelayMs: 2000,
+        maxDelayMs: 10000,
+      }
+    );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Telraam API error for segment ${segmentId}: ${response.status} ${errorText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Telraam API error for segment ${segmentId}: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    // Validate API response structure
+    const validation = TelraamTrafficResponseSchema.safeParse(data);
+    if (!validation.success) {
+      console.error(`Invalid Telraam API response for segment ${segmentId}:`, validation.error);
+      throw new Error(`Invalid API response structure: ${validation.error.message}`);
+    }
+
+    return validation.data.report || [];
+
+  } catch (error) {
+    if (error instanceof RetryError) {
+      console.error(
+        `Failed to fetch data for segment ${segmentId} after ${error.attempts} attempts. ` +
+        `Last error: ${error.lastError.message}`
+      );
+    }
+    throw error;
   }
-
-  const data: TelraamTrafficResponse = await response.json();
-  return data.report || [];
 }
 
 /**
@@ -332,7 +364,7 @@ async function insertHourlyData(
 async function cleanupOldData(db: D1Database): Promise<void> {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const cutoffDate = formatTelraamDateTime(sevenDaysAgo);
+  const cutoffDate = formatDateTime(sevenDaysAgo);
 
   console.log(`Cleaning up data older than ${cutoffDate}`);
 
@@ -342,20 +374,6 @@ async function cleanupOldData(db: D1Database): Promise<void> {
     .run();
 
   console.log(`Deleted ${result.meta.changes || 0} old hourly records`);
-}
-
-/**
- * Format Date object to Telraam API datetime format
- */
-function formatTelraamDateTime(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const hour = String(date.getUTCHours()).padStart(2, '0');
-  const minute = String(date.getUTCMinutes()).padStart(2, '0');
-  const second = String(date.getUTCSeconds()).padStart(2, '0');
-
-  return `${year}-${month}-${day} ${hour}:${minute}:${second}Z`;
 }
 
 /**

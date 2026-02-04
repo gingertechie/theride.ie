@@ -1,6 +1,7 @@
 /**
  * Database utility functions for Telraam sensor data
  */
+import { formatMidnight, formatDate, formatDateTime } from './date-formatting';
 
 /**
  * Get yesterday's date range (midnight to midnight UTC)
@@ -15,17 +16,9 @@ export function getYesterdayDateRange(): { start: string; end: string } {
   const today = new Date(yesterday);
   today.setUTCDate(today.getUTCDate() + 1);
 
-  // Format as ISO8601: YYYY-MM-DD HH:MM:SSZ
-  const formatDate = (date: Date): string => {
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    return `${year}-${month}-${day} 00:00:00Z`;
-  };
-
   return {
-    start: formatDate(yesterday),
-    end: formatDate(today),
+    start: formatMidnight(yesterday),
+    end: formatMidnight(today),
   };
 }
 
@@ -422,24 +415,6 @@ export async function getMonitoringData(
 
   const tomorrow = new Date(today);
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-
-  // Format dates
-  const formatDate = (d: Date): string => {
-    const year = d.getUTCFullYear();
-    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(d.getUTCDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const formatDateTime = (d: Date): string => {
-    const year = d.getUTCFullYear();
-    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(d.getUTCDate()).padStart(2, '0');
-    const hour = String(d.getUTCHours()).padStart(2, '0');
-    const minute = String(d.getUTCMinutes()).padStart(2, '0');
-    const second = String(d.getUTCSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hour}:${minute}:${second}Z`;
-  };
 
   const todayStr = formatDate(today);
   const yesterdayStr = formatDate(yesterday);

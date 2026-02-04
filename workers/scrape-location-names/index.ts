@@ -4,6 +4,8 @@
  * and populate the location_name column in the database
  */
 
+import { fetchWithRetry, RetryError } from '../shared/fetch-with-retry';
+
 interface Env {
   DB: D1Database;
 }
@@ -80,14 +82,23 @@ export default {
 /**
  * Scrape location name from Telraam page
  * Returns the location name or null if not found
+ * Uses exponential backoff retry for resilience against temporary failures
  */
 async function scrapeLocationName(segmentId: number): Promise<string | null> {
   const url = `https://telraam.net/en/location/${segmentId}`;
 
   try {
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(30000), // 30 second timeout
-    });
+    const response = await fetchWithRetry(
+      url,
+      {
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      },
+      {
+        maxRetries: 3,
+        initialDelayMs: 2000,
+        maxDelayMs: 10000,
+      }
+    );
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -114,6 +125,12 @@ async function scrapeLocationName(segmentId: number): Promise<string | null> {
     return locationName || null;
 
   } catch (error) {
+    if (error instanceof RetryError) {
+      console.error(
+        `Failed to scrape location for segment ${segmentId} after ${error.attempts} attempts. ` +
+        `Last error: ${error.lastError.message}`
+      );
+    }
     // Re-throw error to be caught by caller
     throw error;
   }

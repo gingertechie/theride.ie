@@ -24,5 +24,12 @@ dist/
 
 # My stuff
 tmp/
-.claude/settings.local.json
 .worktrees/
+
+# Claude Code local settings (may contain secrets)
+.claude/settings.local.json
+.claude/*.local.*
+
+# Environment files
+.env.local
+.env.*.local
