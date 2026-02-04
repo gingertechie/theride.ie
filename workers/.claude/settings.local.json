@@ -10,7 +10,11 @@
       "Bash(npm test)",
       "Bash(npm run build:*)",
       "Bash(git push:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(npx wrangler d1 execute:*)",
+      "WebSearch",
+      "Bash(test:*)",
+      "Bash(npm run deploy:*)"
     ]
   }
 }
