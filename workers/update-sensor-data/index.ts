@@ -385,3 +385,47 @@ async function cleanupOldData(db: D1Database): Promise<void> {
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+/**
+ * Get sensors with oldest data (or no data) that need updating
+ * Returns up to CHUNK_SIZE sensors, prioritizing:
+ * 1. Sensors with no data (NULL hour_timestamp)
+ * 2. Sensors with oldest hour_timestamp
+ *
+ * This creates a self-organizing priority queue - sensors naturally
+ * get processed based on data freshness without external state tracking.
+ */
+async function getSensorsNeedingUpdate(db: D1Database, chunkSize: number): Promise<SensorLocation[]> {
+  const { results } = await db
+    .prepare(`
+      SELECT
+        sl.segment_id,
+        sl.timezone,
+        MAX(shd.hour_timestamp) as latest_hour
+      FROM sensor_locations sl
+      LEFT JOIN sensor_hourly_data shd ON sl.segment_id = shd.segment_id
+      GROUP BY sl.segment_id, sl.timezone
+      ORDER BY latest_hour ASC NULLS FIRST
+      LIMIT ?
+    `)
+    .bind(chunkSize)
+    .all<SensorLocation & { latest_hour: string | null }>();
+
+  if (!results || results.length === 0) {
+    return [];
+  }
+
+  // Log which sensors we selected and why
+  const now = new Date();
+  results.forEach((sensor, idx) => {
+    if (!sensor.latest_hour) {
+      console.log(`  ${idx + 1}. Sensor ${sensor.segment_id}: No data yet (never fetched)`);
+    } else {
+      const age = now.getTime() - new Date(sensor.latest_hour).getTime();
+      const hoursOld = (age / (1000 * 60 * 60)).toFixed(1);
+      console.log(`  ${idx + 1}. Sensor ${sensor.segment_id}: Data ${hoursOld}h old (${sensor.latest_hour})`);
+    }
+  });
+
+  return results;
+}
