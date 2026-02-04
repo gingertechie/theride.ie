@@ -21,7 +21,21 @@
       "Bash(npx wrangler secret:*)",
       "Bash(export TELRAAM_API_KEY=jIyO0zZ1Yd9cFn6s5RlIM9qhAQbUG7AK8pH0bhRj)",
       "Bash(npx tsx:*)",
-      "Bash(npx wrangler tail:*)"
+      "Bash(npx wrangler tail:*)",
+      "Bash(git pull:*)",
+      "Bash(git merge:*)",
+      "Bash(git branch:*)",
+      "Bash(git worktree:*)",
+      "Bash(/bin/bash -c \"cd /Users/gingertechie/dev/theride.ie && pwd\")",
+      "Bash(exec bash)",
+      "Bash(npm --version)",
+      "Bash(node:*)",
+      "Bash(bash:*)",
+      "Bash(/bin/bash -c 'source ~/.zshrc 2>/dev/null || source ~/.bashrc 2>/dev/null; which node; which npm')",
+      "Bash(/usr/bin/env bash -c 'ls -la')",
+      "Bash(/Users/gingertechie/dev/theride.ie/node_modules/.bin/npm --version)",
+      "Bash(git -C /Users/gingertechie/dev/theride.ie checkout -b add-testing-infrastructure)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []
