@@ -1,0 +1,11 @@
+name = "aggregate-weekly-stats"
+type = "service"
+main = "index.ts"
+
+[env.production]
+routes = [
+  { pattern = "example.com/aggregate-weekly-stats", zone_name = "example.com" }
+]
+
+[triggers]
+crons = ["0 3 * * 0"] # Sunday 3:00 AM UTC

@@ -1,0 +1,14 @@
+{
+  "name": "aggregate-weekly-stats",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev -c wrangler.toml",
+    "deploy": "wrangler deploy -c wrangler.toml",
+    "tail": "wrangler tail aggregate-weekly-stats"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
