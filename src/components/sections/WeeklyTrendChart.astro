@@ -16,9 +16,13 @@ function generate52Weeks(inputData: Array<{ week_ending: string; total_bikes: nu
   // Create a map of existing data by week_ending for O(1) lookup
   const dataMap = new Map(inputData.map(d => [d.week_ending, d.total_bikes]));
 
-  // Generate 52 weeks starting from 52 weeks ago
+  // Calculate the most recent Sunday (week ending)
+  const lastSunday = new Date(today);
+  lastSunday.setDate(lastSunday.getDate() - today.getDay()); // Go back to Sunday
+
+  // Generate 52 weeks starting from 52 weeks ago, moving backwards by weeks
   for (let i = 51; i >= 0; i--) {
-    const weekDate = new Date(today);
+    const weekDate = new Date(lastSunday);
     weekDate.setDate(weekDate.getDate() - (i * 7));
     const weekEnding = weekDate.toISOString().split('T')[0];
 
