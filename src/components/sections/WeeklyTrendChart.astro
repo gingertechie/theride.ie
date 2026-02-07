@@ -1,0 +1,124 @@
+---
+import type { NationalWeeklyStats } from '@/utils/db';
+
+interface Props {
+  data: Array<{ week_ending: string; total_bikes: number }>;
+  title: string;
+  accentColor: 'green' | 'pink';  // 'green' for national, 'pink' for county
+  subtitle?: string;
+}
+
+const { data, title, accentColor, subtitle } = Astro.props;
+
+// Prepare chart data
+const chartData = data.map(d => ({
+  week: new Date(d.week_ending).toLocaleDateString('en-IE', {
+    month: 'short',
+    day: 'numeric'
+  }),
+  bikes: d.total_bikes,
+  fullDate: d.week_ending
+}));
+
+// Calculate max value for scaling
+const maxValue = Math.max(...data.map(d => d.total_bikes), 1);
+
+// CSS classes based on accent color
+const accentClass = accentColor === 'pink' ? 'text-neon-pink' : 'text-neon-green';
+const glowClass = accentColor === 'pink' ? 'text-glow-pink' : 'text-glow-green';
+const borderClass = accentColor === 'pink' ? 'border-neon-pink' : 'border-neon-green';
+---
+
+<div class="weekly-trend-container">
+  <div class="mb-8">
+    <h3 class={`text-2xl font-bold text-white mb-2 ${glowClass}`}>
+      {title}
+    </h3>
+    {subtitle && (
+      <p class="text-text-secondary text-lg">{subtitle}</p>
+    )}
+  </div>
+
+  <div class="bg-velvet-midnight rounded-2xl p-8 border-2" class:list={[borderClass]}>
+    <!-- Simple bar chart: SVG-based static visualization -->
+    <svg
+      viewBox="0 0 1200 400"
+      class="w-full h-auto"
+      preserveAspectRatio="none"
+      style={{ minHeight: '300px' }}
+    >
+      {/* Grid lines */}
+      {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
+        <line
+          x1="60"
+          y1={400 - ratio * 350 + 20}
+          x2="1180"
+          y2={400 - ratio * 350 + 20}
+          stroke="rgba(255, 255, 255, 0.1)"
+          strokeWidth="1"
+        />
+      ))}
+
+      {/* Y-axis */}
+      <line x1="50" y1="20" x2="50" y2="370" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="2" />
+
+      {/* X-axis */}
+      <line x1="50" y1="370" x2="1180" y2="370" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="2" />
+
+      {/* Bars */}
+      {chartData.map((d, i) => {
+        const barWidth = (1130 / chartData.length) * 0.8;
+        const barX = 60 + (i * 1130) / chartData.length + ((1130 / chartData.length) - barWidth) / 2;
+        const barHeight = (d.bikes / maxValue) * 350;
+        const barY = 370 - barHeight;
+        const neonColor = accentColor === 'pink' ? '#FF10F0' : '#39FF14';
+
+        return (
+          <g key={`bar-${i}`}>
+            <rect
+              x={barX}
+              y={barY}
+              width={barWidth}
+              height={barHeight}
+              fill={neonColor}
+              opacity="0.8"
+              style={{
+                filter: accentColor === 'pink'
+                  ? 'drop-shadow(0 0 8px #FF10F0)'
+                  : 'drop-shadow(0 0 8px #39FF14)',
+              }}
+            />
+          </g>
+        );
+      })}
+
+      {/* Y-axis labels */}
+      {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+        const value = Math.round(maxValue * ratio);
+        const y = 375 - ratio * 350;
+        return (
+          <text
+            x="45"
+            y={y + 5}
+            textAnchor="end"
+            fill="rgba(255, 255, 255, 0.5)"
+            fontSize="12"
+          >
+            {value.toLocaleString()}
+          </text>
+        );
+      })}
+    </svg>
+
+    <!-- Legend -->
+    <div class="mt-6 text-center text-text-secondary text-sm">
+      <p>Weekly bike trips • {chartData.length} weeks</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .weekly-trend-container {
+    margin: 2rem 0;
+  }
+</style>
