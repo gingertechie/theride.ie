@@ -12,7 +12,7 @@
  * - Per-sensor incremental: Fetches from latest DB timestamp to now for each sensor
  * - Rate limited: 5s between API calls to respect Telraam limits
  * - Upsert pattern: Safe to re-run without duplicating data
- * - 7-day retention: Automatically cleans up old hourly data
+ * - 365-day retention: Automatically cleans up old hourly data
  * - Early exit: Stops immediately if all sensors are up to date
  *
  * Each sensor independently determines its fetch range based on
@@ -370,12 +370,12 @@ async function insertHourlyData(
 }
 
 /**
- * Clean up hourly data older than 7 days
+ * Clean up hourly data older than 365 days
  */
 async function cleanupOldData(db: D1Database): Promise<void> {
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const cutoffDate = formatDateTime(sevenDaysAgo);
+  const oneYearAgo = new Date();
+  oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+  const cutoffDate = formatDateTime(oneYearAgo);
 
   console.log(`Cleaning up data older than ${cutoffDate}`);
 
