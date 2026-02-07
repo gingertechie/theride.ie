@@ -1,6 +1,4 @@
 ---
-import type { NationalWeeklyStats } from '@/utils/db';
-
 interface Props {
   data: Array<{ week_ending: string; total_bikes: number }>;
   title: string;
@@ -24,7 +22,6 @@ const chartData = data.map(d => ({
 const maxValue = Math.max(...data.map(d => d.total_bikes), 1);
 
 // CSS classes based on accent color
-const accentClass = accentColor === 'pink' ? 'text-neon-pink' : 'text-neon-green';
 const glowClass = accentColor === 'pink' ? 'text-glow-pink' : 'text-glow-green';
 const borderClass = accentColor === 'pink' ? 'border-neon-pink' : 'border-neon-green';
 ---
@@ -55,15 +52,15 @@ const borderClass = accentColor === 'pink' ? 'border-neon-pink' : 'border-neon-g
           x2="1180"
           y2={400 - ratio * 350 + 20}
           stroke="rgba(255, 255, 255, 0.1)"
-          strokeWidth="1"
+          stroke-width="1"
         />
       ))}
 
       {/* Y-axis */}
-      <line x1="50" y1="20" x2="50" y2="370" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="2" />
+      <line x1="50" y1="20" x2="50" y2="370" stroke="rgba(255, 255, 255, 0.3)" stroke-width="2" />
 
       {/* X-axis */}
-      <line x1="50" y1="370" x2="1180" y2="370" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="2" />
+      <line x1="50" y1="370" x2="1180" y2="370" stroke="rgba(255, 255, 255, 0.3)" stroke-width="2" />
 
       {/* Bars */}
       {chartData.map((d, i) => {
@@ -74,7 +71,7 @@ const borderClass = accentColor === 'pink' ? 'border-neon-pink' : 'border-neon-g
         const neonColor = accentColor === 'pink' ? '#FF10F0' : '#39FF14';
 
         return (
-          <g key={`bar-${i}`}>
+          <g>
             <rect
               x={barX}
               y={barY}
@@ -100,9 +97,9 @@ const borderClass = accentColor === 'pink' ? 'border-neon-pink' : 'border-neon-g
           <text
             x="45"
             y={y + 5}
-            textAnchor="end"
+            text-anchor="end"
             fill="rgba(255, 255, 255, 0.5)"
-            fontSize="12"
+            font-size="12"
           >
             {value.toLocaleString()}
           </text>
