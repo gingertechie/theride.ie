@@ -4,6 +4,7 @@ import CountyLeaderboard from "../components/sections/CountyLeaderboard.astro";
 import CountiesGrid from "../components/sections/CountiesGrid.astro";
 import BusiestHour from "../components/sections/BusiestHour.astro";
 import BusiestSensor from "../components/sections/BusiestSensor.astro";
+import WeeklyTrendChart from "../components/sections/WeeklyTrendChart.astro";
 
 // Check for busiest sensor feature flag
 const showBusiestSensor = Astro.url.searchParams.get('showBusiestSensor') === 'true';
@@ -36,6 +37,11 @@ if (showBusiestSensor) {
   const busiestSensorResult = await busiestSensorResponse.json();
   busiestSensor = busiestSensorResult.success ? busiestSensorResult.data : null;
 }
+
+// Fetch weekly trend data
+const weeklyResponse = await fetch(`${Astro.url.origin}/api/stats/weekly/national.json`);
+const weeklyResult = await weeklyResponse.json();
+const weeklyData = weeklyResult.success ? weeklyResult.data : [];
 ---
 
 <MinimalLayout
@@ -131,6 +137,24 @@ if (showBusiestSensor) {
         <!-- County Leaderboard -->
           <CountyLeaderboard counties={counties} />
         </div>
+
+        <!-- Weekly Trend Section -->
+        {weeklyData && weeklyData.length > 0 && (
+          <div class="mt-20">
+            <div class="neon-divider mb-12"></div>
+            <div class="max-w-3xl mx-auto mb-8">
+              <p class="text-text-secondary text-lg text-center leading-relaxed">
+                A year of pedal power: here's how the Irish are cycling, week by week.
+              </p>
+            </div>
+            <WeeklyTrendChart
+              data={weeklyData}
+              title="National Weekly Trends"
+              accentColor="green"
+              subtitle="52 weeks of bike trips across Ireland"
+            />
+          </div>
+        )}
 
         <!-- All Counties Navigation Grid -->
         <div class="mt-20">
