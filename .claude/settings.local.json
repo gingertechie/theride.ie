@@ -15,7 +15,12 @@
       "Bash(npx wrangler deploy:*)",
       "Bash(curl:*)",
       "Bash(python3:*)",
-      "mcp__ide__executeCode"
+      "mcp__ide__executeCode",
+      "Bash(npm run tail:*)",
+      "Bash(npx wrangler tail:*)",
+      "Bash(npx wrangler whoami:*)",
+      "Bash(ACCOUNT_ID=\"1be20a85c4c0f8f78d2a8423af6f6cc2\")",
+      "Bash(npx wrangler deployments:*)"
     ],
     "deny": [],
     "ask": []
