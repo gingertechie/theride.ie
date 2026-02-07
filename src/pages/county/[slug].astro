@@ -1,5 +1,6 @@
 ---
 import MinimalLayout from "@/layouts/MinimalLayout.astro";
+import WeeklyTrendChart from "@/components/sections/WeeklyTrendChart.astro";
 import { slugToCounty } from "@/utils/county-slugs";
 
 // Get county from slug
@@ -18,6 +19,11 @@ const countyData = result.success ? result.data : null;
 if (!countyData) {
   return Astro.redirect('/404');
 }
+
+// Fetch weekly trend data for this county
+const weeklyResponse = await fetch(`${Astro.url.origin}/api/stats/weekly/county/${countyName}.json`);
+const weeklyResult = await weeklyResponse.json();
+const weeklyData = weeklyResult.success ? weeklyResult.data : [];
 ---
 
 <MinimalLayout
@@ -153,6 +159,19 @@ if (!countyData) {
           </div>
         )}
       </div>
+
+      <!-- Weekly Trend Section -->
+      {weeklyData && weeklyData.length > 0 && (
+        <div class="mt-20">
+          <div class="neon-divider-pink mb-12"></div>
+          <WeeklyTrendChart
+            data={weeklyData}
+            title={`${countyData.county}'s Weekly Trends`}
+            accentColor="pink"
+            subtitle="52 weeks of cycling activity"
+          />
+        </div>
+      )}
 
       <!-- Footer Note -->
       <div class="mt-16 text-center">
