@@ -164,16 +164,11 @@ const weeklyData = weeklyResult.success ? weeklyResult.data : [];
       {weeklyData && weeklyData.length > 0 && (
         <div class="mt-20">
           <div class="neon-divider-pink mb-12"></div>
-          <div class="max-w-3xl mx-auto mb-8">
-            <p class="text-text-secondary text-lg text-center leading-relaxed">
-              {countyData.county}'s cycling heartbeat. Week by week.
-            </p>
-          </div>
           <WeeklyTrendChart
             data={weeklyData}
             title={`${countyData.county}'s Weekly Trends`}
             accentColor="pink"
-            subtitle="52 weeks of cycling activity"
+            subtitle={`${countyData.county}'s cycling heartbeat. Week by week.`}
           />
         </div>
       )}

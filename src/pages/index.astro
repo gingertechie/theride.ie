@@ -142,16 +142,11 @@ const weeklyData = weeklyResult.success ? weeklyResult.data : [];
         {weeklyData && weeklyData.length > 0 && (
           <div class="mt-20">
             <div class="neon-divider mb-12"></div>
-            <div class="max-w-3xl mx-auto mb-8">
-              <p class="text-text-secondary text-lg text-center leading-relaxed">
-                Fifty-two weeks of Irish pedal power. The full story.
-              </p>
-            </div>
             <WeeklyTrendChart
               data={weeklyData}
               title="National Weekly Trends"
               accentColor="green"
-              subtitle="52 weeks of bike trips across Ireland"
+              subtitle="Fifty-two weeks of Irish pedal power. The full story."
             />
           </div>
         )}
