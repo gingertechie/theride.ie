@@ -1,6 +1,7 @@
 name = "aggregate-weekly-stats"
 type = "service"
 main = "index.ts"
+compatibility_date = "2026-02-07"
 
 [env.production]
 routes = [
@@ -8,4 +9,4 @@ routes = [
 ]
 
 [triggers]
-crons = ["0 3 * * 0"] # Sunday 3:00 AM UTC
+crons = ["0 3 * * Sun"] # Sunday 3:00 AM UTC
