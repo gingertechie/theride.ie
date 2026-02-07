@@ -56,8 +56,5 @@ CREATE TABLE IF NOT EXISTS sensor_hourly_data (
     FOREIGN KEY (segment_id) REFERENCES sensor_locations(segment_id) ON DELETE CASCADE
 );
 
--- Index for hourly data queries (segment_id, date for performance)
-CREATE INDEX IF NOT EXISTS idx_sensor_hourly_segment_date ON sensor_hourly_data(segment_id, hour_timestamp);
-
--- Index for county aggregations
-CREATE INDEX IF NOT EXISTS idx_sensor_hourly_county ON sensor_hourly_data(segment_id);
+-- Index for time-range queries across all sensors (busiest hour, date monitoring)
+CREATE INDEX IF NOT EXISTS idx_sensor_hourly_timestamp ON sensor_hourly_data(hour_timestamp);
