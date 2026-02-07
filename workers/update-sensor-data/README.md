@@ -1,197 +1,121 @@
-# Update Sensor Data - Scheduled Worker
+# Update Sensor Data Worker
 
-This Cloudflare Worker runs on a schedule (daily at 11:59 PM) to fetch the latest traffic data from the Telraam API and update the sensor data in the D1 database.
+Scheduled Cloudflare Worker that fetches hourly traffic data from Telraam API for all sensors.
 
-## What It Does
+## How It Works
 
-1. Runs automatically every night at 11:59 PM (23:59)
-2. Fetches live traffic snapshot data from Telraam API for all sensors in Ireland
-3. Updates existing sensors in the database with:
-   - `bike` - Bicycle count
-   - `heavy` - Heavy vehicle count
-   - `car` - Car count
-   - `pedestrian` - Pedestrian count
-   - `uptime` - Sensor uptime percentage
-   - `v85` - 85th percentile speed
-   - `last_data_package` - Timestamp of last data update
-   - `night` - Night traffic count (if available)
-   - `updated_at` - Record update timestamp
-4. Only updates sensors that already exist in the database (ignores new segments)
+### Priority-Based Chunked Processing
 
-## Setup & Deployment
+To stay within Cloudflare's 50 subrequest limit (free tier), the worker uses a self-organizing approach:
 
-### 1. Install Dependencies
+- **Chunk size:** 8 sensors per invocation
+- **Priority selection:** Automatically selects sensors with oldest data (or no data)
+- **No state tracking:** Uses existing `sensor_hourly_data` table to determine priority
+- **Frequent runs:** Every 5 minutes (00:00-04:00 UTC) for fast updates
+- **Self-healing:** Sensors with gaps naturally get higher priority
 
-From the worker directory:
+### Processing Flow
 
-```bash
-cd workers/update-sensor-data
-npm install
-```
+1. **Clean Up:** Delete hourly data older than 7 days
+2. **Select Priority Sensors:** Query for 8 sensors with oldest `hour_timestamp` (or NULL)
+3. **Early Exit:** If all sensors up to date, worker exits immediately
+4. **Process Each Sensor:**
+   - Query latest timestamp from `sensor_hourly_data`
+   - Fetch new data from Telraam API (with 5s rate limiting)
+   - Insert hourly data in batches of 50
 
-### 2. Set Up the API Key Secret
+### Subrequest Budget
 
-The Telraam API key needs to be stored as a secret in Cloudflare (not in the code):
+Each invocation uses ~27-35 subrequests:
 
-```bash
-# From the worker directory
-npx wrangler secret put TELRAAM_API_KEY
-```
+- 1 cleanup query
+- 1 priority selection query (LEFT JOIN)
+- 8 sensors × 3 subrequests each:
+  - 1 query for latest timestamp
+  - 1 Telraam API call
+  - 1 batch insert (typically 1 batch per sensor)
 
-When prompted, enter the API key: `72DWFeBZGv5mi73uOcM6S1IlpUXbp5Zb6saWElGg`
+**Total:** ~27 subrequests (well under 50 limit)
 
-This stores the key securely in Cloudflare and makes it available to the worker as `env.TELRAAM_API_KEY`.
+## Schedule
 
-### 3. Deploy the Worker
+Runs every 5 minutes from 00:00-04:00 UTC (60 runs per night).
 
-```bash
-# From the worker directory
-npm run deploy
-```
-
-This will:
-- Build and deploy the worker to Cloudflare
-- Set up the cron trigger to run at 11:59 PM daily
-- Connect to the existing D1 database (`theride-db`)
-
-## Testing
-
-### Manual Trigger (Test Without Waiting for Cron)
-
-You can manually trigger the worker to test it without waiting for the scheduled time:
-
-```bash
-# From the worker directory
-npx wrangler dev --test-scheduled
-```
-
-Or trigger a deployed worker manually via the Cloudflare dashboard:
-1. Go to Workers & Pages
-2. Select `update-sensor-data`
-3. Go to the "Triggers" tab
-4. Click "Trigger Cron" to run it immediately
-
-### View Logs
-
-To see real-time logs from the deployed worker:
-
-```bash
-# From the worker directory
-npm run tail
-```
-
-Or view logs in the Cloudflare dashboard under Workers & Pages > update-sensor-data > Logs.
-
-### Check Database Updates
-
-After running the worker, verify the updates in the database:
-
-```bash
-# From the project root
-npx wrangler d1 execute theride-db --command "SELECT segment_id, bike, updated_at FROM sensor_locations ORDER BY updated_at DESC LIMIT 10"
-```
-
-## Schedule Configuration
-
-The cron schedule is configured in `wrangler.toml`:
+With 40 sensors ÷ 8 per run = 5 runs needed, completing in ~25 minutes.
 
 ```toml
 [triggers]
-crons = ["59 23 * * *"]
+crons = ["*/5 0-4 * * *"]
 ```
 
-This uses standard cron syntax:
-- `59` = Minute (59)
-- `23` = Hour (11 PM in 24-hour format)
-- `*` = Every day of the month
-- `*` = Every month
-- `*` = Every day of the week
+## Configuration
 
-To change the schedule, modify this line and redeploy.
-
-## Geographic Coverage
-
-The worker fetches sensor data for all of Ireland using:
-- **Center point**: -8.2439°W, 53.4129°N (geographic center of Ireland)
-- **Radius**: 300 km (covers the entire island)
-
-This is configured in the API request body:
-
-```json
-{
-  "time": "live",
-  "contents": "minimal",
-  "area": "-8.2439,53.4129,300"
-}
+```typescript
+const CHUNK_SIZE = 8;  // Sensors per invocation (tune for subrequest budget)
 ```
 
-## Error Handling
+## Why This Works
 
-- If a sensor doesn't exist in the database, it's skipped (not added)
-- Errors for individual sensors are logged but don't stop the entire process
-- Overall errors cause the scheduled run to be marked as failed in Cloudflare
-- Check logs to monitor success/failure and see how many sensors were updated
+The priority query creates a **self-organizing queue**:
+
+```sql
+SELECT sl.segment_id, sl.timezone, MAX(shd.hour_timestamp) as latest_hour
+FROM sensor_locations sl
+LEFT JOIN sensor_hourly_data shd ON sl.segment_id = shd.segment_id
+GROUP BY sl.segment_id, sl.timezone
+ORDER BY latest_hour ASC NULLS FIRST  -- NULL (never fetched) comes first
+LIMIT 8
+```
+
+- Sensors never fetched (NULL) get highest priority
+- Sensors with oldest data come next
+- Recently updated sensors naturally pushed to back
+- No manual state tracking or reset logic needed
+
+## Development
+
+```bash
+# Local development with test triggers
+npm run dev
+
+# Deploy to production
+npm run deploy
+
+# View production logs
+npm run tail
+
+# Manually trigger (Cloudflare dashboard)
+# Workers & Pages > update-sensor-data > Triggers > Cron Triggers > "Send test event"
+```
 
 ## Monitoring
 
-Key metrics logged on each run:
-- Total number of sensor reports received from API
-- Number of sensors in our database
-- Number of matching sensors to update
-- Batch processing progress
-- Number of sensors updated/skipped
-- Any errors encountered
-
-Example log output:
-```
-Starting scheduled sensor data update...
-Received 45 sensor reports from Telraam API
-Database has 40 registered sensors
-Found 38 matching sensors to update
-Batch 1: Updated 38 sensors
-Update complete: 38 sensors updated, 7 sensors skipped (not in database)
-```
+Check logs for:
+- `🔍 Finding 8 sensors with oldest data...` - Priority selection
+- `📦 Processing N sensors` - How many sensors selected
+- `✅ All sensors up to date` - Nothing to do (early exit)
+- `Sensor X: Data Yh old` - Data freshness for each sensor
+- Subrequest errors - May need to reduce CHUNK_SIZE
 
 ## Troubleshooting
 
-### "Too many API requests by single worker invocation"
+### "Too many subrequests" error
 
-**Problem**: Worker fails with error about too many API requests.
+Reduce `CHUNK_SIZE` constant:
+- Current: 8 sensors (~27 subrequests)
+- Try: 6 sensors (~21 subrequests)
+- Minimum viable: 4 sensors (~15 subrequests)
 
-**Cause**: Cloudflare Workers have a limit on the number of subrequests (database queries, API calls) that can be made in a single worker invocation. Making individual queries for each sensor (SELECT + UPDATE per sensor) quickly exceeds this limit.
+### Sensors not updating
 
-**Solution** (IMPLEMENTED): The worker uses batching to avoid this limit:
-
-1. **Bulk fetch**: Get all sensor IDs from the database in a single query
-2. **In-memory filtering**: Filter Telraam data to only sensors we track (no per-sensor database lookups)
-3. **Batch updates**: Group UPDATE queries in batches of 50 using `D1.batch()`
-
-This reduces database operations from ~80 per run (40 sensors × 2 queries each) to ~3 per run (1 fetch + ~1-2 batch updates).
-
-**Code pattern**:
-```typescript
-// Fetch all sensor IDs once
-const { results: ourSegments } = await env.DB
-  .prepare('SELECT segment_id FROM sensor_locations')
-  .all<{ segment_id: number }>();
-
-// Filter in memory
-const ourSegmentIds = new Set(ourSegments.map(s => s.segment_id));
-const relevantReports = data.features
-  .map(f => f.properties)
-  .filter(report => ourSegmentIds.has(report.segment_id));
-
-// Batch updates (50 at a time)
-const BATCH_SIZE = 50;
-for (let i = 0; i < relevantReports.length; i += BATCH_SIZE) {
-  const batch = relevantReports.slice(i, i + BATCH_SIZE);
-  const statements = batch.map(report => /* create UPDATE statement */);
-  await env.DB.batch(statements);
-}
-```
-
-**How to verify the fix**:
-1. Deploy the updated worker
-2. Trigger manually via Cloudflare dashboard (Workers & Pages > update-sensor-data > Triggers > "Trigger Cron")
-3. Check logs for batch processing messages
-4. Verify no "Too many API requests" errors
+Check:
+1. Cron schedule is running (Cloudflare dashboard)
+2. Last successful run in logs
+3. Query to see sensor data freshness:
+   ```sql
+   SELECT segment_id, MAX(hour_timestamp) as latest
+   FROM sensor_hourly_data
+   GROUP BY segment_id
+   ORDER BY latest ASC;
+   ```
+4. Telraam API key valid

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run test:unit:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run test:typecheck:*)",
+      "Bash(find:*)",
+      "Bash(npm test)",
+      "Bash(npm run build:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(npx wrangler d1 execute:*)",
+      "WebSearch",
+      "Bash(test:*)",
+      "Bash(npm run deploy:*)"
+    ]
+  }
+}

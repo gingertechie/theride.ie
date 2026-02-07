@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro';
-import { getSensorById, getSensorStats, upsertSensor, deleteSensor } from '@/utils/db';
+import { getSensorById, upsertSensor, deleteSensor } from '@/utils/db';
+import { verifyAdminAuth, unauthorizedResponse } from '@/utils/auth';
+import { SensorLocationSchema, validateInput } from '@/schemas/api';
 
 /**
  * GET /api/sensors/[id].json
@@ -75,6 +77,11 @@ export const GET: APIRoute = async ({ locals, params }) => {
  * Update or insert a sensor
  */
 export const PUT: APIRoute = async ({ locals, params, request }) => {
+  // Verify authentication
+  if (!verifyAdminAuth(request, locals.runtime.env)) {
+    return unauthorizedResponse();
+  }
+
   try {
     const segmentId = parseInt(params.id || '');
 
@@ -94,12 +101,47 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
     }
 
     const db = locals.runtime.env.DB as D1Database;
-    const sensorData = await request.json();
+    const rawData = await request.json();
 
     // Ensure segment_id matches the URL parameter
-    sensorData.segment_id = segmentId;
+    rawData.segment_id = segmentId;
 
-    await upsertSensor(db, sensorData);
+    // Validate sensor data
+    const validation = validateInput(SensorLocationSchema, rawData);
+
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: validation.error,
+          details: validation.details,
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
+    // Ensure segment_id from URL matches body (double-check after validation)
+    if (validation.data.segment_id !== segmentId) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Segment ID in body does not match URL parameter',
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
+    await upsertSensor(db, validation.data);
 
     return new Response(
       JSON.stringify({
@@ -133,7 +175,12 @@ export const PUT: APIRoute = async ({ locals, params, request }) => {
  * DELETE /api/sensors/[id].json
  * Delete a sensor
  */
-export const DELETE: APIRoute = async ({ locals, params }) => {
+export const DELETE: APIRoute = async ({ locals, params, request }) => {
+  // Verify authentication
+  if (!verifyAdminAuth(request, locals.runtime.env)) {
+    return unauthorizedResponse();
+  }
+
   try {
     const segmentId = parseInt(params.id || '');
 

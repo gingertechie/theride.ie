@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getTopCountiesByBikes } from '@/utils/db';
+import { CountiesQuerySchema, validateInput } from '@/schemas/api';
+import { errorResponse, databaseUnavailableResponse } from '@/utils/errors';
 
 /**
  * GET /api/stats/counties.json
@@ -9,18 +11,25 @@ export const GET: APIRoute = async ({ locals, url }) => {
   try {
     // Check if runtime is available
     if (!locals.runtime?.env?.DB) {
+      return databaseUnavailableResponse();
+    }
+
+    const db = locals.runtime.env.DB as D1Database;
+
+    // Validate query parameters
+    const validation = validateInput(CountiesQuerySchema, {
+      limit: url.searchParams.get('limit'),
+    });
+
+    if (!validation.success) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'D1 database binding not available. Make sure you are running with wrangler dev or have set up local bindings.',
-          debug: {
-            hasRuntime: !!locals.runtime,
-            hasEnv: !!locals.runtime?.env,
-            available: Object.keys(locals.runtime?.env || {}),
-          }
+          error: validation.error,
+          details: validation.details,
         }),
         {
-          status: 503,
+          status: 400,
           headers: {
             'Content-Type': 'application/json',
           },
@@ -28,12 +37,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
       );
     }
 
-    const db = locals.runtime.env.DB as D1Database;
-
-    // Get limit from query params, default to 3
-    const limitParam = url.searchParams.get('limit');
-    const limit = limitParam ? parseInt(limitParam, 10) : 3;
-
+    const { limit } = validation.data;
     const counties = await getTopCountiesByBikes(db, limit);
 
     if (!counties || counties.length === 0) {
@@ -60,21 +64,11 @@ export const GET: APIRoute = async ({ locals, url }) => {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=300, s-maxage=300', // 5 minutes
         },
       }
     );
   } catch (error) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    return errorResponse(error, 'Failed to retrieve county statistics');
   }
 };

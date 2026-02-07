@@ -4,13 +4,17 @@
   "description": "Scheduled worker to update sensor data from Telraam API",
   "main": "index.ts",
   "scripts": {
-    "build": "echo 'No build step needed - wrangler handles compilation'",
     "dev": "wrangler dev -c wrangler.toml",
     "deploy": "wrangler deploy -c wrangler.toml",
-    "tail": "wrangler tail update-sensor-data"
+    "tail": "wrangler tail update-sensor-data",
+    "test-batching": "tsx test-batching.ts"
   },
-  "dependencies": {},
+  "dependencies": {
+    "wrangler": "^4.54.0",
+    "zod": "^4.3.6"
+  },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241127.0"
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "tsx": "^4.21.0"
   }
 }

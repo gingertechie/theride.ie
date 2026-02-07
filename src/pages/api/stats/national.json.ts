@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getNationalStats } from '@/utils/db';
+import { errorResponse, databaseUnavailableResponse } from '@/utils/errors';
 
 /**
  * GET /api/stats/national.json
@@ -9,23 +10,7 @@ export const GET: APIRoute = async ({ locals }) => {
   try {
     // Check if runtime is available
     if (!locals.runtime?.env?.DB) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'D1 database binding not available. Make sure you are running with wrangler dev or have set up local bindings.',
-          debug: {
-            hasRuntime: !!locals.runtime,
-            hasEnv: !!locals.runtime?.env,
-            available: Object.keys(locals.runtime?.env || {}),
-          }
-        }),
-        {
-          status: 503,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      return databaseUnavailableResponse();
     }
 
     const db = locals.runtime.env.DB as D1Database;
@@ -55,21 +40,11 @@ export const GET: APIRoute = async ({ locals }) => {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=300, s-maxage=300', // 5 minutes
         },
       }
     );
   } catch (error) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    return errorResponse(error, 'Failed to retrieve national statistics');
   }
 };

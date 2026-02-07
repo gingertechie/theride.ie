@@ -1,13 +1,41 @@
 /**
- * Scheduled Worker: Update Sensor Data
- * Runs nightly to fetch hourly traffic data from Telraam API
- * and update the D1 database with historical hourly bike counts
+ * Update Sensor Data Worker
+ *
+ * Incrementally fetches hourly traffic data from Telraam API for all sensors.
+ *
+ * Design:
+ * - Chunked processing: Processes 8 sensors per invocation to stay under Cloudflare's
+ *   50 subrequest limit (free tier)
+ * - Priority-based: Automatically selects sensors with oldest data (or no data)
+ * - Self-organizing: No external state tracking - uses existing hourly data table
+ * - Frequent runs: Runs every 5 minutes (00:00-04:00 UTC) for fast updates
+ * - Per-sensor incremental: Fetches from latest DB timestamp to now for each sensor
+ * - Rate limited: 5s between API calls to respect Telraam limits
+ * - Upsert pattern: Safe to re-run without duplicating data
+ * - 7-day retention: Automatically cleans up old hourly data
+ * - Early exit: Stops immediately if all sensors are up to date
+ *
+ * Each sensor independently determines its fetch range based on
+ * its latest hour_timestamp in the sensor_hourly_data table.
+ *
+ * Subrequest Budget (Free Tier = 50):
+ * - 1 cleanup query
+ * - 1 priority selection query (LEFT JOIN to find oldest data)
+ * - 8 sensors × (1 latest timestamp query + 1 Telraam API call + 1-2 batch inserts)
+ * - Total: ~27-35 subrequests per invocation
  */
+
+import { fetchWithRetry, RetryError } from '../shared/fetch-with-retry';
+import { TelraamTrafficResponseSchema } from '../shared/telraam-schema';
+import { formatDateTime } from '../shared/date-formatting';
 
 interface Env {
   DB: D1Database;
   TELRAAM_API_KEY: string;
 }
+
+// Configuration
+const CHUNK_SIZE = 8; // Process 8 sensors per invocation (stays under 50 subrequests)
 
 interface SensorLocation {
   segment_id: number;
@@ -40,32 +68,39 @@ export default {
     env: Env,
     ctx: ExecutionContext
   ): Promise<void> {
-    console.log('Starting scheduled hourly sensor data update...');
+    const startTime = Date.now();
+    const now = new Date();
+    console.log(`[${now.toISOString()}] Starting scheduled sensor data update...`);
 
     try {
       // Step 1: Clean up data older than 7 days
       await cleanupOldData(env.DB);
 
-      // Step 2: Get all sensors we track
-      const { results: sensors } = await env.DB
-        .prepare('SELECT segment_id, timezone FROM sensor_locations')
-        .all<SensorLocation>();
+      // Step 2: Get sensors with oldest data (or no data at all)
+      console.log(`🔍 Finding ${CHUNK_SIZE} sensors with oldest data...`);
+      const sensors = await getSensorsNeedingUpdate(env.DB, CHUNK_SIZE);
 
-      if (!sensors || sensors.length === 0) {
-        console.log('No sensors found in database');
+      if (sensors.length === 0) {
+        console.log('✅ All sensors up to date - nothing to do');
         return;
       }
 
-      console.log(`Found ${sensors.length} sensors to update`);
+      console.log(`📦 Processing ${sensors.length} sensors`);
 
-      // Step 3: For each sensor, determine what hours we need to fetch
-      const now = new Date();
-      const currentHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
-
+      // Step 3: Process selected sensors
+      const currentHourDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
       let totalHoursInserted = 0;
       let sensorsUpdated = 0;
+      let sensorsSkipped = 0;
+      let sensorsErrored = 0;
+      const processedSensors: number[] = [];
 
-      for (const sensor of sensors) {
+      for (let i = 0; i < sensors.length; i++) {
+        const sensor = sensors[i];
+        const sensorStartTime = Date.now();
+
+        console.log(`\n[Sensor ${i + 1}/${sensors.length}] Processing segment_id: ${sensor.segment_id}`);
+
         try {
           // Get the latest hour we have for this sensor
           const { results: latestHours } = await env.DB
@@ -73,60 +108,86 @@ export default {
             .bind(sensor.segment_id)
             .all<HourlyDataRow>();
 
-          let startTime: Date;
+          let fetchStartTime: Date;
 
           if (!latestHours || latestHours.length === 0) {
             // No data yet - fetch last 24 hours
-            startTime = new Date(currentHour.getTime() - 24 * 60 * 60 * 1000);
-            console.log(`Sensor ${sensor.segment_id}: No data found, fetching last 24 hours`);
+            fetchStartTime = new Date(currentHourDate.getTime() - 24 * 60 * 60 * 1000);
+            console.log(`  No existing data - fetching last 24 hours from ${fetchStartTime.toISOString()}`);
           } else {
             // Have data - fetch from next hour after latest
             const lastHour = new Date(latestHours[0].hour_timestamp);
-            startTime = new Date(lastHour.getTime() + 60 * 60 * 1000); // +1 hour
-            console.log(`Sensor ${sensor.segment_id}: Last data at ${lastHour.toISOString()}, fetching from ${startTime.toISOString()}`);
+            fetchStartTime = new Date(lastHour.getTime() + 60 * 60 * 1000); // +1 hour
+            console.log(`  Last data: ${lastHour.toISOString()}, fetching from ${fetchStartTime.toISOString()}`);
           }
 
           // Don't fetch the current incomplete hour
-          const endTime = new Date(currentHour.getTime() - 60 * 60 * 1000); // -1 hour from current
+          const fetchEndTime = new Date(currentHourDate.getTime() - 60 * 60 * 1000); // -1 hour from current
 
-          if (startTime >= currentHour) {
-            console.log(`Sensor ${sensor.segment_id}: Already up to date`);
+          if (fetchStartTime >= currentHourDate) {
+            console.log(`  Already up to date - skipping`);
+            sensorsSkipped++;
             continue;
           }
 
           // Sleep 5 seconds to avoid Telraam API rate limits (429 errors)
-          await sleep(5000);
+          if (i > 0) {
+            console.log(`  Waiting 5s before API call...`);
+            await sleep(5000);
+          }
 
           // Fetch hourly data from Telraam
+          const apiCallStart = Date.now();
           const hourlyData = await fetchHourlyData(
             env.TELRAAM_API_KEY,
             sensor.segment_id.toString(),
-            startTime,
-            endTime
+            fetchStartTime,
+            fetchEndTime
           );
+          const apiCallDuration = Date.now() - apiCallStart;
+          console.log(`  API call completed in ${apiCallDuration}ms, returned ${hourlyData.length} records`);
 
           if (hourlyData.length === 0) {
-            console.log(`Sensor ${sensor.segment_id}: No new data available`);
+            console.log(`  No new data available - skipping`);
+            sensorsSkipped++;
             continue;
           }
 
           // Insert hourly data (batch by 50 to avoid subrequest limits)
+          const insertStart = Date.now();
           const inserted = await insertHourlyData(env.DB, sensor.segment_id, hourlyData);
+          const insertDuration = Date.now() - insertStart;
+
           totalHoursInserted += inserted;
           sensorsUpdated++;
+          processedSensors.push(sensor.segment_id);
 
-          console.log(`Sensor ${sensor.segment_id}: Inserted ${inserted} hours of data`);
+          const sensorDuration = Date.now() - sensorStartTime;
+          console.log(`  ✅ Inserted ${inserted} hours in ${insertDuration}ms (total sensor time: ${sensorDuration}ms)`);
 
         } catch (error) {
-          console.error(`Error processing sensor ${sensor.segment_id}:`, error);
+          sensorsErrored++;
+          const sensorDuration = Date.now() - sensorStartTime;
+          console.error(`  ❌ Error after ${sensorDuration}ms:`, error);
           // Continue with next sensor
         }
       }
 
-      console.log(`Update complete: ${sensorsUpdated} sensors updated, ${totalHoursInserted} total hours inserted`);
+      const totalDuration = Date.now() - startTime;
+      console.log(`\n${'='.repeat(70)}`);
+      console.log(`Batch complete in ${(totalDuration / 1000).toFixed(1)}s`);
+      console.log(`  Sensors processed: ${sensorsUpdated}`);
+      console.log(`  Sensors skipped (up to date): ${sensorsSkipped}`);
+      console.log(`  Sensors errored: ${sensorsErrored}`);
+      console.log(`  Hours inserted: ${totalHoursInserted}`);
+      if (processedSensors.length > 0) {
+        console.log(`  Successfully processed IDs: ${processedSensors.join(', ')}`);
+      }
+      console.log(`${'='.repeat(70)}`);
 
     } catch (error) {
-      console.error('Error in scheduled worker:', error);
+      const totalDuration = Date.now() - startTime;
+      console.error(`Worker failed after ${(totalDuration / 1000).toFixed(1)}s:`, error);
       throw error;
     }
   },
@@ -134,6 +195,7 @@ export default {
 
 /**
  * Fetch hourly traffic data from Telraam API for a specific segment and time range
+ * Uses exponential backoff retry for resilience against temporary API failures
  */
 async function fetchHourlyData(
   apiKey: string,
@@ -146,28 +208,55 @@ async function fetchHourlyData(
     level: 'segments',
     format: 'per-hour',
     id: segmentId,
-    time_start: formatTelraamDateTime(startTime),
-    time_end: formatTelraamDateTime(endTime),
+    time_start: formatDateTime(startTime),
+    time_end: formatDateTime(endTime),
   };
 
   console.log(`Fetching data for segment ${segmentId} from ${body.time_start} to ${body.time_end}`);
 
-  const response = await fetch('https://telraam-api.net/v1/reports/traffic', {
-    method: 'POST',
-    headers: {
-      'X-Api-Key': apiKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  try {
+    const response = await fetchWithRetry(
+      'https://telraam-api.net/v1/reports/traffic',
+      {
+        method: 'POST',
+        headers: {
+          'X-Api-Key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      },
+      {
+        maxRetries: 3,
+        initialDelayMs: 2000,
+        maxDelayMs: 10000,
+      }
+    );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Telraam API error for segment ${segmentId}: ${response.status} ${errorText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Telraam API error for segment ${segmentId}: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    // Validate API response structure
+    const validation = TelraamTrafficResponseSchema.safeParse(data);
+    if (!validation.success) {
+      console.error(`Invalid Telraam API response for segment ${segmentId}:`, validation.error);
+      throw new Error(`Invalid API response structure: ${validation.error.message}`);
+    }
+
+    return validation.data.report || [];
+
+  } catch (error) {
+    if (error instanceof RetryError) {
+      console.error(
+        `Failed to fetch data for segment ${segmentId} after ${error.attempts} attempts. ` +
+        `Last error: ${error.lastError.message}`
+      );
+    }
+    throw error;
   }
-
-  const data: TelraamTrafficResponse = await response.json();
-  return data.report || [];
 }
 
 /**
@@ -260,7 +349,7 @@ async function insertHourlyData(
         report.v85 ?? null,
         report.uptime
       );
-    }).filter(stmt => stmt !== null); // Filter out invalid records
+    }).filter((stmt): stmt is D1PreparedStatement => stmt !== null); // Filter out invalid records
 
     // Skip if all records in batch were invalid
     if (statements.length === 0) {
@@ -286,7 +375,7 @@ async function insertHourlyData(
 async function cleanupOldData(db: D1Database): Promise<void> {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const cutoffDate = formatTelraamDateTime(sevenDaysAgo);
+  const cutoffDate = formatDateTime(sevenDaysAgo);
 
   console.log(`Cleaning up data older than ${cutoffDate}`);
 
@@ -299,22 +388,52 @@ async function cleanupOldData(db: D1Database): Promise<void> {
 }
 
 /**
- * Format Date object to Telraam API datetime format
- */
-function formatTelraamDateTime(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const hour = String(date.getUTCHours()).padStart(2, '0');
-  const minute = String(date.getUTCMinutes()).padStart(2, '0');
-  const second = String(date.getUTCSeconds()).padStart(2, '0');
-
-  return `${year}-${month}-${day} ${hour}:${minute}:${second}Z`;
-}
-
-/**
  * Sleep for specified milliseconds to avoid API rate limits
  */
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Get sensors with oldest data (or no data) that need updating
+ * Returns up to CHUNK_SIZE sensors, prioritizing:
+ * 1. Sensors with no data (NULL hour_timestamp)
+ * 2. Sensors with oldest hour_timestamp
+ *
+ * This creates a self-organizing priority queue - sensors naturally
+ * get processed based on data freshness without external state tracking.
+ */
+async function getSensorsNeedingUpdate(db: D1Database, chunkSize: number): Promise<SensorLocation[]> {
+  const { results } = await db
+    .prepare(`
+      SELECT
+        sl.segment_id,
+        sl.timezone,
+        MAX(shd.hour_timestamp) as latest_hour
+      FROM sensor_locations sl
+      LEFT JOIN sensor_hourly_data shd ON sl.segment_id = shd.segment_id
+      GROUP BY sl.segment_id, sl.timezone
+      ORDER BY latest_hour ASC NULLS FIRST
+      LIMIT ?
+    `)
+    .bind(chunkSize)
+    .all<SensorLocation & { latest_hour: string | null }>();
+
+  if (!results || results.length === 0) {
+    return [];
+  }
+
+  // Log which sensors we selected and why
+  const now = new Date();
+  results.forEach((sensor, idx) => {
+    if (!sensor.latest_hour) {
+      console.log(`  ${idx + 1}. Sensor ${sensor.segment_id}: No data yet (never fetched)`);
+    } else {
+      const age = now.getTime() - new Date(sensor.latest_hour).getTime();
+      const hoursOld = (age / (1000 * 60 * 60)).toFixed(1);
+      console.log(`  ${idx + 1}. Sensor ${sensor.segment_id}: Data ${hoursOld}h old (${sensor.latest_hour})`);
+    }
+  });
+
+  return results;
 }
