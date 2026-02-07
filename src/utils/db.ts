@@ -522,3 +522,63 @@ export async function getMonitoringData(
     },
   };
 }
+
+/**
+ * Get national weekly statistics for trend chart (last 52 weeks)
+ */
+export interface NationalWeeklyStats {
+  week_ending: string;
+  total_bikes: number;
+}
+
+export async function getNationalWeeklyStats(
+  db: D1Database,
+  weeks: number = 52
+): Promise<NationalWeeklyStats[]> {
+  const { results } = await db
+    .prepare(`
+      SELECT
+        w.week_ending,
+        COALESCE(SUM(w.total_bikes), 0) as total_bikes
+      FROM sensor_weekly_stats w
+      INNER JOIN sensor_locations s ON w.segment_id = s.segment_id
+      WHERE s.county IS NOT NULL
+      GROUP BY w.week_ending
+      ORDER BY w.week_ending ASC
+      LIMIT ?
+    `)
+    .bind(weeks)
+    .all<NationalWeeklyStats>();
+
+  return results || [];
+}
+
+/**
+ * Get county-specific weekly statistics for trend chart (last 52 weeks)
+ */
+export interface CountyWeeklyStats {
+  week_ending: string;
+  total_bikes: number;
+}
+
+export async function getCountyWeeklyStats(
+  db: D1Database,
+  county: string,
+  weeks: number = 52
+): Promise<CountyWeeklyStats[]> {
+  const { results } = await db
+    .prepare(`
+      SELECT
+        week_ending,
+        COALESCE(SUM(total_bikes), 0) as total_bikes
+      FROM sensor_weekly_stats
+      WHERE county = ?
+      GROUP BY week_ending
+      ORDER BY week_ending ASC
+      LIMIT ?
+    `)
+    .bind(county, weeks)
+    .all<CountyWeeklyStats>();
+
+  return results || [];
+}
