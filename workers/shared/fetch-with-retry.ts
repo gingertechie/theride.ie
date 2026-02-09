@@ -52,19 +52,23 @@ export async function fetchWithRetry(
 
       // Check if response status is retryable
       if (!response.ok && retryableStatuses.includes(response.status)) {
+        // If this is the last attempt, throw immediately without consuming body
+        if (attempt >= maxRetries) {
+          lastError = new Error(`HTTP ${response.status}: Response body not read`);
+          break; // Exit retry loop to throw RetryError below
+        }
+
+        // Not the last attempt - read error details and retry
         const errorText = await response.text();
         lastError = new Error(`HTTP ${response.status}: ${errorText}`);
 
-        // Don't retry on last attempt
-        if (attempt < maxRetries) {
-          const delay = calculateBackoffDelay(attempt, initialDelayMs, maxDelayMs);
-          console.log(
-            `Retryable error (${response.status}) on attempt ${attempt + 1}/${maxRetries + 1}. ` +
-            `Retrying in ${delay}ms...`
-          );
-          await sleep(delay);
-          continue;
-        }
+        const delay = calculateBackoffDelay(attempt, initialDelayMs, maxDelayMs);
+        console.log(
+          `Retryable error (${response.status}) on attempt ${attempt + 1}/${maxRetries + 1}. ` +
+          `Retrying in ${delay}ms...`
+        );
+        await sleep(delay);
+        continue;
       }
 
       // Success or non-retryable error

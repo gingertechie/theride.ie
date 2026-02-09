@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev -c wrangler.toml",
+    "dev": "wrangler dev -c wrangler.toml --local",
+    "test": "wrangler dev -c wrangler.toml --local --test-scheduled",
     "deploy": "wrangler deploy -c wrangler.toml",
     "tail": "wrangler tail backfill-historical"
   },

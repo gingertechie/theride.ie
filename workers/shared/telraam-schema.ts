@@ -11,12 +11,12 @@ import { z } from 'zod';
 export const TelraamHourlyReportSchema = z.object({
   date: z.string().min(1), // "2025-11-30" or ISO timestamp
   hour: z.number().int().min(0).max(23).optional(), // 0-23 (optional if date includes time)
-  uptime: z.number().min(0).max(1), // 0-1
-  heavy: z.number().min(0),
-  car: z.number().min(0),
-  bike: z.number().min(0),
-  pedestrian: z.number().min(0),
-  v85: z.number().optional(), // Speed metric, may be missing
+  uptime: z.number().min(0).max(1).nullable(), // 0-1, can be null
+  heavy: z.number().min(0).nullable(), // Can be null when no data
+  car: z.number().min(0).nullable(), // Can be null when no data
+  bike: z.number().min(0).nullable(), // Can be null when no data
+  pedestrian: z.number().min(0).nullable(), // Can be null when no data
+  v85: z.number().nullable().optional(), // Speed metric, may be missing or null
 });
 
 /**

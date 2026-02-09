@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run tail:*)",
+      "Bash(npx wrangler deployments list:*)",
+      "Bash(npm run deploy:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npx wrangler:*)",
+      "Bash(chmod:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

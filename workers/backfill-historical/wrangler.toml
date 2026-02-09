@@ -12,6 +12,15 @@ database_id = "86c35cca-68fd-4d93-8d4a-c7a3ab463b10"
 binding = "HISTORICAL_BUCKET"
 bucket_name = "theride-historical"
 
+[vars]
+BATCH_SIZE = "2"  # Test with just 2 sensors
+BACKFILL_DAYS = "7"  # Just 1 week of backfill for testing
+
 [triggers]
 # Disabled by default - enable via Cloudflare dashboard when ready
 # crons = ["0 2 * * *"] # Daily at 2:00 AM UTC
+
+[observability]
+[observability.logs]
+enabled = false
+invocation_logs = true

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx wrangler tail:*)",
+      "Bash(TELRAAM_API_KEY=\"$TELRAAM_API_KEY:-\" npx tsx:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npx wrangler d1 execute:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run deploy:*)",
+      "Bash(timeout 30 npm run tail:*)"
+    ]
+  }
+}
