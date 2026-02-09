@@ -10,19 +10,11 @@ interface Env {
   DB: D1Database;
 }
 
-interface WeeklyStat {
-  week_ending: string;
-  segment_id: number;
-  county: string | null;
-  total_bikes: number;
-  avg_daily: number;
-}
-
 export default {
   async scheduled(
-    event: ScheduledEvent,
+    _event: ScheduledEvent,
     env: Env,
-    ctx: ExecutionContext
+    _ctx: ExecutionContext
   ): Promise<void> {
     const startTime = Date.now();
     const now = new Date();
@@ -34,12 +26,22 @@ export default {
       const today = new Date(now);
       today.setUTCHours(0, 0, 0, 0);
 
-      const daysFromSunday = today.getUTCDay(); // 0 = Sunday
-      const lastSunday = new Date(today);
-      lastSunday.setUTCDate(today.getUTCDate() - daysFromSunday - 1); // Previous Sunday
+      // Calculate days since last Sunday (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+      const daysSinceSunday = today.getUTCDay();
 
+      // Calculate the start of the previous complete week (Sunday)
+      const lastSunday = new Date(today);
+      if (daysSinceSunday === 0) {
+        // Today is Sunday - the week that just ended was last Sunday to yesterday (Saturday)
+        lastSunday.setUTCDate(today.getUTCDate() - 7);
+      } else {
+        // Not Sunday - go back to the most recent Sunday before this week
+        lastSunday.setUTCDate(today.getUTCDate() - daysSinceSunday - 7);
+      }
+
+      // Week ends on Saturday (6 days after Sunday)
       const lastSaturday = new Date(lastSunday);
-      lastSaturday.setUTCDate(lastSunday.getUTCDate() + 6); // Saturday (end of that week)
+      lastSaturday.setUTCDate(lastSunday.getUTCDate() + 6);
 
       const weekEnding = lastSunday.toISOString().split('T')[0]; // YYYY-MM-DD format
       const weekStart = `${weekEnding} 00:00:00Z`;
