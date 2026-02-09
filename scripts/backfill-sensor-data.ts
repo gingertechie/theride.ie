@@ -19,11 +19,11 @@ interface TelraamHourlyReport {
   date: string; // "2025-11-30"
   hour: number; // 0-23
   uptime: number; // 0-1
-  heavy: number;
-  car: number;
-  bike: number;
-  pedestrian: number;
-  v85?: number;
+  heavy: number | null;
+  car: number | null;
+  bike: number | null;
+  pedestrian: number | null;
+  v85?: number | null;
 }
 
 interface TelraamTrafficResponse {
@@ -118,9 +118,15 @@ async function backfillData(): Promise<void> {
   let sensorsWithData = 0;
 
   // Process each sensor
-  for (const sensor of sensors) {
+  for (let idx = 0; idx < sensors.length; idx++) {
+    const sensor = sensors[idx];
     try {
-      console.log(`🔄 Processing sensor ${sensor.segment_id}...`);
+      // Log progress every 10 sensors or for single sensor mode
+      const shouldLogDetails = sensors.length === 1 || idx % 10 === 0;
+
+      if (shouldLogDetails) {
+        console.log(`🔄 [${idx + 1}/${sensors.length}] Processing sensor ${sensor.segment_id}...`);
+      }
 
       // Fetch hourly data from Telraam API
       const hourlyData = await fetchHourlyData(
@@ -131,12 +137,12 @@ async function backfillData(): Promise<void> {
       );
 
       if (hourlyData.length === 0) {
-        console.log(`   ⚠️  No data available from Telraam API`);
+        if (shouldLogDetails) {
+          console.log(`   ⚠️  No data available from Telraam API`);
+        }
         sensorsProcessed++;
         continue;
       }
-
-      console.log(`   📥 Fetched ${hourlyData.length} hours of data`);
 
       // Insert into database
       const inserted = await insertHourlyData(sensor.segment_id, hourlyData);
@@ -144,7 +150,9 @@ async function backfillData(): Promise<void> {
       sensorsProcessed++;
       sensorsWithData++;
 
-      console.log(`   ✅ Inserted ${inserted} hours into database\n`);
+      if (shouldLogDetails) {
+        console.log(`   ✅ Inserted ${inserted} hours (${hourlyData.length} fetched)\n`);
+      }
 
     } catch (error) {
       console.error(`   ❌ Error processing sensor ${sensor.segment_id}:`, error);
@@ -235,10 +243,10 @@ async function insertHourlyData(
         params.push(
           segmentId,
           hourTimestamp,
-          report.bike,
-          report.car,
-          report.heavy,
-          report.pedestrian,
+          report.bike ?? 0,
+          report.car ?? 0,
+          report.heavy ?? 0,
+          report.pedestrian ?? 0,
           report.v85 ?? null,
           report.uptime
         );
@@ -251,10 +259,10 @@ async function insertHourlyData(
         params.push(
           segmentId,
           hourTimestamp,
-          report.bike,
-          report.car,
-          report.heavy,
-          report.pedestrian,
+          report.bike ?? 0,
+          report.car ?? 0,
+          report.heavy ?? 0,
+          report.pedestrian ?? 0,
           report.v85 ?? null,
           report.uptime
         );
@@ -298,7 +306,7 @@ async function insertHourlyData(
     await fs.writeFile(tempFile, formattedSql);
 
     try {
-      await execWrangler(`d1 execute theride-db --remote --file=${tempFile}`);
+      await execWrangler(`d1 execute theride-db --remote --file=${tempFile}`, { quiet: true });
       insertedCount += batch.length;
     } catch (error) {
       console.error(`   ⚠️  Error inserting batch:`, error);
@@ -329,7 +337,7 @@ function formatTelraamDateTime(date: Date): string {
 /**
  * Execute wrangler command and return output
  */
-async function execWrangler(command: string): Promise<string> {
+async function execWrangler(command: string, options?: { quiet?: boolean }): Promise<string> {
   const { exec } = await import('child_process');
   const { promisify } = await import('util');
   const execAsync = promisify(exec);
@@ -341,6 +349,12 @@ async function execWrangler(command: string): Promise<string> {
     // Only throw if stderr contains actual errors (not warnings)
     if (stderr && stderr.includes('ERROR') && !stderr.includes('WARNING')) {
       throw new Error(stderr);
+    }
+
+    // In quiet mode, don't return the full output to prevent log spam
+    // Just return a success indicator
+    if (options?.quiet) {
+      return JSON.stringify({ success: true });
     }
 
     return stdout;
