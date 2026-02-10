@@ -10,6 +10,7 @@ set -euo pipefail
 
 # Configuration
 WORKER_URL="https://backfill-historical.YOUR-SUBDOMAIN.workers.dev/backfill"
+BACKFILL_SECRET="YOUR-SECRET-TOKEN"  # Set your auth token from Cloudflare env vars
 START_DATE="20240101"  # Adjust to your desired start date
 END_DATE="20240131"    # Adjust to your desired end date
 
@@ -43,6 +44,7 @@ for i in "${!SENSORS[@]}"; do
 
   # Make request and capture both body and status code
   response=$(curl -s -w "\n%{http_code}" \
+    -H "X-Backfill-Secret: $BACKFILL_SECRET" \
     "$WORKER_URL?sensor_id=$sensor_id&start_date=$START_DATE&end_date=$END_DATE")
 
   # Extract status code (last line)
@@ -67,6 +69,7 @@ for i in "${!SENSORS[@]}"; do
       echo "  🔄 Retrying sensor $sensor_id..."
       # Retry once after rate limit
       response=$(curl -s -w "\n%{http_code}" \
+        -H "X-Backfill-Secret: $BACKFILL_SECRET" \
         "$WORKER_URL?sensor_id=$sensor_id&start_date=$START_DATE&end_date=$END_DATE")
       status_code=$(echo "$response" | tail -n1)
       if [ "$status_code" = "200" ]; then

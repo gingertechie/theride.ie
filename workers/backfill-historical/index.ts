@@ -5,8 +5,10 @@
  * raw JSON in R2 for later processing.
  *
  * Endpoint: GET /backfill?sensor_id={id}&start_date={YYYYMMDD}&end_date={YYYYMMDD}
+ * Authentication: X-Backfill-Secret header required
  *
  * Features:
+ * - Secret header authentication
  * - Query parameter validation
  * - Inclusive date ranges (00:00:00 to 23:59:59)
  * - Single API attempt (no retries)
@@ -24,6 +26,7 @@ import { TelraamHourlyReport } from '../shared/telraam-schema';
 
 interface Env {
   TELRAAM_API_KEY: string;
+  BACKFILL_SECRET: string;
   HISTORICAL_BUCKET: R2Bucket;
 }
 
@@ -41,6 +44,12 @@ export default {
     // Route: /backfill
     if (url.pathname !== '/backfill') {
       return createErrorResponse(404, 'Not found (use /backfill endpoint)');
+    }
+
+    // Check authentication
+    const authToken = request.headers.get('X-Backfill-Secret');
+    if (!authToken || authToken !== env.BACKFILL_SECRET) {
+      return createErrorResponse(401, 'Unauthorized - invalid or missing auth token');
     }
 
     // Validate query parameters

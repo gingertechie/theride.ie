@@ -8,12 +8,16 @@ This worker provides an HTTP GET endpoint that fetches historical Telraam sensor
 
 ```
 GET /backfill?sensor_id={id}&start_date={YYYYMMDD}&end_date={YYYYMMDD}
+Header: X-Backfill-Secret: {your-secret-token}
 ```
 
 **Example:**
 ```bash
-curl "https://backfill-historical.your-worker.workers.dev/backfill?sensor_id=9000001435&start_date=20250101&end_date=20250131"
+curl -H "X-Backfill-Secret: your-secret-token" \
+  "https://backfill-historical.your-worker.workers.dev/backfill?sensor_id=9000001435&start_date=20250101&end_date=20250131"
 ```
+
+**Authentication:** All requests require the `X-Backfill-Secret` header with a valid secret token.
 
 ## Query Parameters
 
@@ -30,6 +34,7 @@ curl "https://backfill-historical.your-worker.workers.dev/backfill?sensor_id=900
 
 ### Client Errors (4xx)
 - **400 Bad Request** - Invalid parameters (missing, wrong format, invalid dates)
+- **401 Unauthorized** - Missing or invalid X-Backfill-Secret header
 - **404 Not Found** - No data available from Telraam API for this sensor/range
 - **405 Method Not Allowed** - Used non-GET method
 
@@ -47,6 +52,7 @@ curl "https://backfill-historical.your-worker.workers.dev/backfill?sensor_id=900
 Set in Cloudflare Dashboard (Workers & Pages > backfill-historical > Settings > Environment Variables):
 
 - **TELRAAM_API_KEY** (required) - Your Telraam API key
+- **BACKFILL_SECRET** (required) - Secret token for authenticating requests (generate a strong random string)
 
 ### R2 Bucket
 
@@ -76,14 +82,23 @@ npm run deploy
 cd workers/backfill-historical
 npm run dev
 
-# Test successful fetch (adjust dates for recent data)
+# Set your secret token (use any string for local testing)
+SECRET="test-secret-123"
+
+# Test authentication (should fail with 401)
 curl "http://localhost:8787/backfill?sensor_id=9000001435&start_date=20250101&end_date=20250107"
 
+# Test successful fetch with auth header (adjust dates for recent data)
+curl -H "X-Backfill-Secret: $SECRET" \
+  "http://localhost:8787/backfill?sensor_id=9000001435&start_date=20250101&end_date=20250107"
+
 # Test validation errors
-curl "http://localhost:8787/backfill?sensor_id=9000001435&start_date=invalid&end_date=20250131"
+curl -H "X-Backfill-Secret: $SECRET" \
+  "http://localhost:8787/backfill?sensor_id=9000001435&start_date=invalid&end_date=20250131"
 
 # Test missing parameters
-curl "http://localhost:8787/backfill?sensor_id=9000001435"
+curl -H "X-Backfill-Secret: $SECRET" \
+  "http://localhost:8787/backfill?sensor_id=9000001435"
 ```
 
 ### Production Monitoring
