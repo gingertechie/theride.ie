@@ -15,11 +15,12 @@
  * - Custom HTTP status codes for orchestration
  */
 
-import { validateQueryParams, ValidationError } from './validation';
+import { validateQueryParams, ValidationError, ValidatedParams } from './validation';
 import { convertStartDate, convertEndDate } from './date-utils';
 import { fetchHourlyData, TelraamAPIError } from './telraam-client';
 import { writeToR2, R2StorageError, generateR2Key } from './r2-client';
 import { createStreamingResponse, createErrorResponse, ResponseError } from './streaming';
+import { TelraamHourlyReport } from '../shared/telraam-schema';
 
 interface Env {
   TELRAAM_API_KEY: string;
@@ -43,7 +44,7 @@ export default {
     }
 
     // Validate query parameters
-    let params;
+    let params: ValidatedParams;
     try {
       params = validateQueryParams(url);
     } catch (error) {
@@ -64,7 +65,7 @@ export default {
       log(`Fetching sensor ${params.sensor_id} from ${startTime} to ${endTime}...`);
 
       // Fetch data from Telraam API
-      let hourlyData;
+      let hourlyData: TelraamHourlyReport[];
       try {
         hourlyData = await fetchHourlyData(
           env.TELRAAM_API_KEY,
