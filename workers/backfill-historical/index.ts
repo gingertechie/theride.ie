@@ -88,7 +88,7 @@ export default {
           } else if (error.statusCode === 502) {
             throw new ResponseError(502, error.message);
           } else {
-            throw new ResponseError(400, error.message);
+            throw new ResponseError(error.statusCode, error.message);
           }
         }
         throw error;
