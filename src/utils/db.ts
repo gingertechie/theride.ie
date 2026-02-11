@@ -274,6 +274,7 @@ export async function getBusiestSensor(
       WHERE h.hour_timestamp >= ?
         AND h.hour_timestamp < ?
         AND s.county IS NOT NULL
+        AND (s.is_quarantined = 0 OR s.is_quarantined IS NULL)
       GROUP BY s.segment_id, s.location_name, s.county
       ORDER BY total_bikes DESC, s.segment_id ASC
       LIMIT 1
