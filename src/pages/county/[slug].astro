@@ -91,7 +91,7 @@ const weeklyData = weeklyResult.success ? weeklyResult.data : [];
                 href={`https://telraam.net/en/location/${sensor.segment_id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="block bg-velvet-midnight rounded-xl p-6 border-2 border-velvet-charcoal hover:border-neon-pink transition-all duration-300 hover:neon-glow-pink hover:transform hover:scale-105 group"
+                class="block bg-velvet-midnight rounded-xl p-6 border-2 border-velvet-charcoal hover:border-neon-pink transition-all duration-300 hover:neon-glow-pink hover:transform hover:scale-105 group sensor-card"
               >
                 {/* Sensor Header */}
                 <div class="flex items-start justify-between mb-4">
@@ -102,6 +102,11 @@ const weeklyData = weeklyResult.success ? weeklyResult.data : [];
                           ? `${sensor.location_name}${sensor.locality || sensor.city_town ? ` · ${sensor.locality || sensor.city_town}` : ''}`
                           : (sensor.locality || sensor.city_town || `Sensor ${sensor.segment_id}`)
                       }
+                      {sensor.is_quarantined === 1 && (
+                        <span class="quarantine-badge">
+                          ⚠️ Data under review
+                        </span>
+                      )}
                     </h3>
                     <p class="text-text-muted text-sm mt-1">#{sensor.segment_id}</p>
                   </div>
