@@ -296,6 +296,7 @@ export interface SensorWithDailyTotal {
   city_town: string | null;
   county: string | null;
   location_name: string | null;
+  is_quarantined: number;  // SQLite INTEGER (0 or 1)
   bike: number;
   car: number;
   pedestrian: number;
@@ -328,6 +329,7 @@ export async function getCountyDetails(
       FROM sensor_hourly_data h
       INNER JOIN sensor_locations s ON h.segment_id = s.segment_id
       WHERE s.county = ?
+        AND (s.is_quarantined = 0 OR s.is_quarantined IS NULL)
         AND h.hour_timestamp >= ?
         AND h.hour_timestamp < ?
       GROUP BY s.county
@@ -350,6 +352,7 @@ export async function getCountyDetails(
         s.city_town,
         s.county,
         s.location_name,
+        s.is_quarantined,
         COALESCE(SUM(h.bike), 0) as bike,
         COALESCE(SUM(h.car), 0) as car,
         COALESCE(SUM(h.pedestrian), 0) as pedestrian,
