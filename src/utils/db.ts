@@ -231,6 +231,7 @@ export async function getTopCountiesByBikes(
       FROM sensor_hourly_data h
       INNER JOIN sensor_locations s ON h.segment_id = s.segment_id
       WHERE s.county IS NOT NULL
+        AND (s.is_quarantined = 0 OR s.is_quarantined IS NULL)
         AND h.hour_timestamp >= ?
         AND h.hour_timestamp < ?
       GROUP BY s.county
