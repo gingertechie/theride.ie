@@ -1,7 +1,7 @@
 name = "backfill-historical"
 type = "service"
 main = "index.ts"
-compatibility_date = "2026-02-08"
+compatibility_date = "2025-02-10"
 
 [[d1_databases]]
 binding = "DB"
@@ -13,12 +13,8 @@ binding = "HISTORICAL_BUCKET"
 bucket_name = "theride-historical"
 
 [vars]
-BATCH_SIZE = "2"  # Test with just 2 sensors
-BACKFILL_DAYS = "7"  # Just 1 week of backfill for testing
-
-[triggers]
-# Disabled by default - enable via Cloudflare dashboard when ready
-# crons = ["0 2 * * *"] # Daily at 2:00 AM UTC
+# For local testing only - set real secret in Cloudflare dashboard for production
+BACKFILL_SECRET = "test-secret-local-dev-only"
 
 [observability]
 [observability.logs]

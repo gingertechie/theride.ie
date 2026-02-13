@@ -32,7 +32,11 @@
       "Bash(npm --version)",
       "Bash(test:*)",
       "WebFetch(domain:telraam.net)",
-      "mcp__ide__executeCode"
+      "mcp__ide__executeCode",
+      "Bash(git stash:*)",
+      "Bash(npx wrangler versions view:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []

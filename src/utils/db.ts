@@ -187,6 +187,7 @@ export async function getNationalStats(db: D1Database): Promise<NationalStats | 
       FROM sensor_hourly_data h
       INNER JOIN sensor_locations s ON h.segment_id = s.segment_id
       WHERE s.county IS NOT NULL
+        AND (s.is_quarantined = 0 OR s.is_quarantined IS NULL)
         AND h.hour_timestamp >= ?
         AND h.hour_timestamp < ?
     `)
@@ -230,6 +231,7 @@ export async function getTopCountiesByBikes(
       FROM sensor_hourly_data h
       INNER JOIN sensor_locations s ON h.segment_id = s.segment_id
       WHERE s.county IS NOT NULL
+        AND (s.is_quarantined = 0 OR s.is_quarantined IS NULL)
         AND h.hour_timestamp >= ?
         AND h.hour_timestamp < ?
       GROUP BY s.county
@@ -272,6 +274,7 @@ export async function getBusiestSensor(
       WHERE h.hour_timestamp >= ?
         AND h.hour_timestamp < ?
         AND s.county IS NOT NULL
+        AND (s.is_quarantined = 0 OR s.is_quarantined IS NULL)
       GROUP BY s.segment_id, s.location_name, s.county
       ORDER BY total_bikes DESC, s.segment_id ASC
       LIMIT 1
@@ -293,6 +296,7 @@ export interface SensorWithDailyTotal {
   city_town: string | null;
   county: string | null;
   location_name: string | null;
+  is_quarantined: number;  // SQLite INTEGER (0 or 1)
   bike: number;
   car: number;
   pedestrian: number;
@@ -325,6 +329,7 @@ export async function getCountyDetails(
       FROM sensor_hourly_data h
       INNER JOIN sensor_locations s ON h.segment_id = s.segment_id
       WHERE s.county = ?
+        AND (s.is_quarantined = 0 OR s.is_quarantined IS NULL)
         AND h.hour_timestamp >= ?
         AND h.hour_timestamp < ?
       GROUP BY s.county
@@ -347,6 +352,7 @@ export async function getCountyDetails(
         s.city_town,
         s.county,
         s.location_name,
+        s.is_quarantined,
         COALESCE(SUM(h.bike), 0) as bike,
         COALESCE(SUM(h.car), 0) as car,
         COALESCE(SUM(h.pedestrian), 0) as pedestrian,

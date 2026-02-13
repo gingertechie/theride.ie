@@ -7,7 +7,16 @@
       "mcp__ide__getDiagnostics",
       "Bash(npx wrangler:*)",
       "Bash(chmod:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: implement smart backfill with progressive historical data fetching\n\n- Smart backfill: For each sensor, finds oldest data and fetches N days before it\n- Progressive: Avoids reprocessing existing data, fills backward in time\n- Improved error handling: Better retry logic in fetch-with-retry\n- Schema updates: Handle nullable values in Telraam API responses\n- Add database migrations for zero-result and backfill progress tracking\n- Add deployment documentation and local testing scripts\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git checkout:*)",
+      "Bash(node test-date-logic.js:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git merge:*)",
+      "Bash(curl:*)",
+      "Bash(kill:*)",
+      "Bash(git rm:*)"
     ]
   }
 }
